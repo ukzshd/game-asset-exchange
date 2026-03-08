@@ -1,0 +1,242 @@
+.affiliatePage {
+    padding: 32px 0 60px;
+}
+
+.title {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    margin-bottom: 32px;
+}
+
+/* Stats */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.statCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.statIcon {
+    font-size: 1.8rem;
+}
+
+.statInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.statValue {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.statLabel {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Link Card */
+.linkCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 28px;
+}
+
+.linkCard h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.linkRow {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.linkInput {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--accent-cyan);
+    font-size: var(--font-size-sm);
+    font-family: monospace;
+}
+
+.copyBtn {
+    flex-shrink: 0;
+}
+
+.linkNote {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* History */
+.historyCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 28px;
+}
+
+.historyCard h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    padding: 20px 24px 0;
+    margin-bottom: 14px;
+}
+
+.historyHeader {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr;
+    gap: 12px;
+    padding: 10px 24px;
+    background: var(--bg-nav);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.historyRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 0.8fr;
+    gap: 12px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border-primary);
+    font-size: var(--font-size-sm);
+    align-items: center;
+}
+
+.histDate {
+    color: var(--text-muted);
+}
+
+.commission {
+    color: var(--text-price);
+    font-weight: 600;
+}
+
+.refStatus {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    display: inline-block;
+    width: fit-content;
+}
+
+.paid {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+}
+
+.pending {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--accent-yellow);
+}
+
+/* How It Works */
+.howItWorks {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+}
+
+.howItWorks h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.stepsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.stepCard {
+    text-align: center;
+    padding: 20px;
+}
+
+.stepNum {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    color: white;
+    font-weight: 800;
+    font-size: var(--font-size-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+
+.stepCard h4 {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.stepCard p {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+@media (max-width: 1024px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .stepsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .linkRow {
+        flex-direction: column;
+    }
+
+    .historyHeader {
+        display: none;
+    }
+
+    .historyRow {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}

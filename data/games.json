@@ -1,0 +1,313 @@
+[
+    {
+        "slug": "arc-raiders",
+        "name": "ARC Raiders",
+        "shortName": "ARC Raiders",
+        "icon": "🎮",
+        "banner": "/images/games/arc-raiders-banner.jpg",
+        "active": true,
+        "categories": [
+            {
+                "slug": "items",
+                "name": "ARC Raiders Items",
+                "icon": "🎒"
+            },
+            {
+                "slug": "coins",
+                "name": "ARC Raiders Coins",
+                "icon": "💰"
+            },
+            {
+                "slug": "carry-run",
+                "name": "ARC Raiders Carry Run",
+                "icon": "🏃"
+            },
+            {
+                "slug": "boosting",
+                "name": "ARC Raider Boosting",
+                "icon": "⚡"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC"
+            ],
+            "servers": [
+                "All Servers"
+            ],
+            "itemTypes": [
+                "All",
+                "BluePrint",
+                "Material",
+                "Misc",
+                "Expedition Material",
+                "Trophy Display Material",
+                "Weather Monitor Material",
+                "Weapon",
+                "Modded Weapon",
+                "Shield And Augment",
+                "Key",
+                "Flickering Flames Items",
+                "Station Material",
+                "Loadout"
+            ],
+            "subTypes": {
+                "Material": [
+                    "All",
+                    "Basic Material",
+                    "Recyclable Material",
+                    "Topside Material",
+                    "Refined Material",
+                    "Nature Material",
+                    "Trinket Material"
+                ],
+                "Misc": [
+                    "All",
+                    "Quick Use",
+                    "Weapon Mods"
+                ],
+                "Weapon": [
+                    "All",
+                    "Pistols",
+                    "Shotguns",
+                    "Submachine Guns",
+                    "Assault Rifles",
+                    "Battle Rifles",
+                    "Light Machineguns",
+                    "Sniper Rifles",
+                    "Special"
+                ],
+                "Modded Weapon": [
+                    "All",
+                    "Pistols",
+                    "Shotguns",
+                    "Submachine Guns",
+                    "Assault Rifles",
+                    "Battle Rifles",
+                    "Light Machineguns",
+                    "Sniper Rifles",
+                    "Special"
+                ]
+            }
+        },
+        "deliveryInfo": "Please offer us the right Embark ID.",
+        "couponCode": "ARC8",
+        "couponDiscount": "8%"
+    },
+    {
+        "slug": "diablo-4",
+        "name": "Diablo 4",
+        "shortName": "Diablo 4",
+        "icon": "🔥",
+        "active": true,
+        "categories": [
+            {
+                "slug": "gold",
+                "name": "Diablo 4 Gold",
+                "icon": "💰"
+            },
+            {
+                "slug": "items",
+                "name": "Diablo 4 Items",
+                "icon": "⚔️"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC",
+                "PS5",
+                "Xbox"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "poe-2-currency",
+        "name": "Path of Exile 2",
+        "shortName": "POE 2",
+        "icon": "⚡",
+        "active": true,
+        "categories": [
+            {
+                "slug": "currency",
+                "name": "POE 2 Currency",
+                "icon": "💎"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "elden-ring",
+        "name": "Elden Ring",
+        "shortName": "Elden Ring",
+        "icon": "💍",
+        "active": true,
+        "categories": [
+            {
+                "slug": "runes",
+                "name": "Elden Ring Runes",
+                "icon": "✨"
+            },
+            {
+                "slug": "items",
+                "name": "Elden Ring Items",
+                "icon": "🗡️"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC",
+                "PS5",
+                "Xbox"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "fc-26-coins",
+        "name": "FC 26",
+        "shortName": "FC 26",
+        "icon": "⚽",
+        "active": true,
+        "categories": [
+            {
+                "slug": "coins",
+                "name": "FC 26 Coins",
+                "icon": "💰"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC",
+                "PS5",
+                "Xbox"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "wow-classic",
+        "name": "WoW Classic",
+        "shortName": "WoW",
+        "icon": "🐉",
+        "active": true,
+        "categories": [
+            {
+                "slug": "gold",
+                "name": "WoW Classic Gold",
+                "icon": "💰"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "dark-and-darker-gold",
+        "name": "Dark and Darker",
+        "shortName": "DnD",
+        "icon": "🌑",
+        "active": true,
+        "categories": [
+            {
+                "slug": "gold",
+                "name": "Dark and Darker Gold",
+                "icon": "💰"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "animal-crossing-items",
+        "name": "Animal Crossing New Horizons",
+        "shortName": "ACNH",
+        "icon": "🏝️",
+        "active": true,
+        "categories": [
+            {
+                "slug": "items",
+                "name": "ACNH Items",
+                "icon": "🎁"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "Switch"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "helldivers-2-items",
+        "name": "Helldivers 2",
+        "shortName": "HD2",
+        "icon": "🪖",
+        "active": true,
+        "categories": [
+            {
+                "slug": "items",
+                "name": "Helldivers 2 Items",
+                "icon": "🎒"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC",
+                "PS5"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    },
+    {
+        "slug": "ffxiv",
+        "name": "Final Fantasy XIV",
+        "shortName": "FFXIV",
+        "icon": "⚔️",
+        "active": true,
+        "categories": [
+            {
+                "slug": "gil",
+                "name": "FFXIV Gil",
+                "icon": "💰"
+            }
+        ],
+        "filters": {
+            "platforms": [
+                "PC",
+                "PS5"
+            ],
+            "itemTypes": [
+                "All"
+            ]
+        }
+    }
+]

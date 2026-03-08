@@ -1,0 +1,288 @@
+.dashboard {
+    padding: 32px 0 60px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Sidebar */
+.sidebar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: sticky;
+    top: calc(var(--header-height) + var(--nav-height) + 24px);
+}
+
+.userCard {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    background: var(--bg-input);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.userCard h3 {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.memberBadge {
+    font-size: var(--font-size-xs);
+    color: var(--accent-yellow);
+    font-weight: 500;
+}
+
+.sideNav {
+    padding: 8px;
+}
+
+.sideNavItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sideNavItem:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.sideNavActive {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--accent-blue);
+}
+
+/* Main */
+.pageTitle {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    margin-bottom: 24px;
+}
+
+/* Stats */
+.orderStats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.statCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    text-align: center;
+}
+
+.statValue {
+    display: block;
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Orders Table */
+.ordersTable {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.tableHeader {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr 1.5fr 0.8fr 0.8fr 0.8fr;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-nav);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableRow {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr 1.5fr 0.8fr 0.8fr 0.8fr;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-primary);
+    align-items: center;
+    font-size: var(--font-size-sm);
+}
+
+.tableRow:last-child {
+    border-bottom: none;
+}
+
+.orderId {
+    font-weight: 600;
+    color: var(--accent-blue);
+}
+
+.orderDate {
+    color: var(--text-muted);
+}
+
+.orderItem {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.orderAmount {
+    font-weight: 600;
+    color: var(--text-price);
+}
+
+/* Status Badges */
+.statusBadge {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.statusProcessing {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--accent-yellow);
+}
+
+.statusDelivered {
+    background: rgba(37, 99, 235, 0.15);
+    color: var(--accent-blue);
+}
+
+.statusCompleted {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+}
+
+.statusRefunded {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red);
+}
+
+.detailsBtn {
+    font-size: var(--font-size-xs);
+    color: var(--accent-blue);
+    font-weight: 500;
+}
+
+.detailsBtn:hover {
+    text-decoration: underline;
+}
+
+/* Settings */
+.settingsCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.settingsCard h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.settingsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input {
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.input:focus {
+    border-color: var(--accent-blue);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+@media (max-width: 1024px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .tableHeader {
+        display: none;
+    }
+
+    .tableRow {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .orderStats {
+        grid-template-columns: 1fr;
+    }
+
+    .settingsGrid {
+        grid-template-columns: 1fr;
+    }
+}

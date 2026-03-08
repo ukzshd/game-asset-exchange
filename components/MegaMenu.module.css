@@ -1,0 +1,89 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+    animation: fadeIn 0.2s ease;
+}
+
+.megaMenu {
+    position: fixed;
+    top: calc(var(--header-height) + var(--nav-height));
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--accent-blue);
+    box-shadow: var(--shadow-lg);
+    z-index: 95;
+    animation: slideDown 0.25s ease;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.content {
+    padding: 24px 0;
+}
+
+.gameGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 4px;
+}
+
+.gameItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    text-decoration: none;
+}
+
+.gameItem:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--text-primary);
+}
+
+.gameIcon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.gameName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hotBadge {
+    margin-left: auto;
+    background: var(--accent-red);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    letter-spacing: 0.5px;
+}
+
+.allGamesLink {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 0;
+    color: var(--accent-blue);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.allGamesLink:hover {
+    color: var(--accent-blue-hover);
+}
+
+@media (max-width: 768px) {
+    .gameGrid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}

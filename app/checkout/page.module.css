@@ -1,0 +1,339 @@
+.checkoutPage {
+    padding: 32px 0 60px;
+}
+
+.title {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    margin-bottom: 32px;
+}
+
+/* Steps */
+.steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    margin-bottom: 40px;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.stepNumber {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-secondary);
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+}
+
+.stepActive .stepNumber {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+.stepActive {
+    color: var(--text-primary);
+}
+
+.stepDone .stepNumber {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: white;
+}
+
+/* Layout */
+.checkoutLayout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 32px;
+    align-items: start;
+}
+
+/* Form */
+.formCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+}
+
+.formTitle {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input {
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+    border-color: var(--accent-blue);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.textarea {
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    resize: vertical;
+    transition: border-color var(--transition-fast);
+}
+
+.textarea:focus {
+    border-color: var(--accent-blue);
+}
+
+.textarea::placeholder {
+    color: var(--text-muted);
+}
+
+/* Payment Options */
+.paymentOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.paymentOption {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.paymentOption:hover {
+    border-color: var(--border-hover);
+}
+
+.paymentActive {
+    border-color: var(--accent-blue);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.paymentOption input {
+    accent-color: var(--accent-blue);
+}
+
+.paymentIcon {
+    font-size: 1.8rem;
+}
+
+.paymentOption h4 {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.paymentOption p {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Stripe Form */
+.stripeForm {
+    margin-bottom: 20px;
+}
+
+.stripeRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.paypalSection {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-bottom: 20px;
+}
+
+/* Terms */
+.termsRow {
+    margin-bottom: 24px;
+}
+
+.checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.checkbox input {
+    margin-top: 3px;
+    accent-color: var(--accent-blue);
+}
+
+.checkbox a {
+    color: var(--accent-blue);
+}
+
+.formActions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Order Summary */
+.orderSummary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    position: sticky;
+    top: calc(var(--header-height) + var(--nav-height) + 24px);
+}
+
+.orderSummary h3 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.summaryItems {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summaryItem {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.summaryItemName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 12px;
+}
+
+.summaryDivider {
+    height: 1px;
+    background: var(--border-primary);
+    margin: 16px 0;
+}
+
+.summaryTotal {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: var(--font-size-md);
+}
+
+.totalPrice {
+    color: var(--text-price);
+    font-size: var(--font-size-xl);
+}
+
+/* Complete */
+.completePage {
+    text-align: center;
+    padding: 60px 0;
+}
+
+.completeIcon {
+    font-size: 4rem;
+    margin-bottom: 24px;
+}
+
+.completePage h2 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: 12px;
+}
+
+.completePage p {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    margin-bottom: 8px;
+}
+
+.completeNote {
+    color: var(--accent-cyan) !important;
+    font-weight: 500;
+    margin-bottom: 32px !important;
+}
+
+.completeActions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+@media (max-width: 1024px) {
+    .checkoutLayout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps {
+        gap: 16px;
+    }
+
+    .step span {
+        display: none;
+    }
+}

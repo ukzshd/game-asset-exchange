@@ -1,0 +1,118 @@
+{
+    "currencies": [
+        {
+            "code": "USD",
+            "symbol": "$",
+            "name": "US Dollar",
+            "rate": 1.0
+        },
+        {
+            "code": "EUR",
+            "symbol": "€",
+            "name": "Euro",
+            "rate": 0.92
+        },
+        {
+            "code": "GBP",
+            "symbol": "£",
+            "name": "British Pound",
+            "rate": 0.79
+        },
+        {
+            "code": "AUD",
+            "symbol": "A$",
+            "name": "Australian Dollar",
+            "rate": 1.53
+        },
+        {
+            "code": "CAD",
+            "symbol": "C$",
+            "name": "Canadian Dollar",
+            "rate": 1.36
+        },
+        {
+            "code": "NOK",
+            "symbol": "N.Kr.",
+            "name": "Norwegian Krone",
+            "rate": 10.85
+        },
+        {
+            "code": "SEK",
+            "symbol": "S.Kr.",
+            "name": "Swedish Krona",
+            "rate": 10.42
+        },
+        {
+            "code": "DKK",
+            "symbol": "D.Kr.",
+            "name": "Danish Krone",
+            "rate": 6.87
+        },
+        {
+            "code": "ISK",
+            "symbol": "I.Kr.",
+            "name": "Icelandic Króna",
+            "rate": 137.5
+        },
+        {
+            "code": "CLP",
+            "symbol": "CLP",
+            "name": "Chilean Peso",
+            "rate": 935.0
+        },
+        {
+            "code": "COP",
+            "symbol": "COP",
+            "name": "Colombian Peso",
+            "rate": 3950.0
+        },
+        {
+            "code": "PEN",
+            "symbol": "S/.",
+            "name": "Peruvian Sol",
+            "rate": 3.72
+        },
+        {
+            "code": "ARS",
+            "symbol": "ARS",
+            "name": "Argentine Peso",
+            "rate": 875.0
+        },
+        {
+            "code": "PLN",
+            "symbol": "zł",
+            "name": "Polish Zloty",
+            "rate": 3.98
+        },
+        {
+            "code": "SAR",
+            "symbol": "S.R.",
+            "name": "Saudi Riyal",
+            "rate": 3.75
+        },
+        {
+            "code": "QAR",
+            "symbol": "﷼",
+            "name": "Qatari Riyal",
+            "rate": 3.64
+        },
+        {
+            "code": "AED",
+            "symbol": "AED",
+            "name": "UAE Dirham",
+            "rate": 3.67
+        }
+    ],
+    "languages": [
+        {
+            "code": "en",
+            "name": "English",
+            "flag": "🇺🇸"
+        },
+        {
+            "code": "zh",
+            "name": "中文",
+            "flag": "🇨🇳"
+        }
+    ]
+}

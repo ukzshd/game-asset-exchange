@@ -1,0 +1,496 @@
+[
+    {
+        "id": "arc-wmm-1-5",
+        "name": "[Weather Monitor Material] Foundation 1~5",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-monitor.jpg",
+        "price": 12.36,
+        "originalPrice": 13.01,
+        "discount": 5,
+        "inStock": true,
+        "description": "25 Plastic Parts + 15 Metal Parts + 5 ARC Alloy + 3 Oil + 1 Snitch Scanner + 3 Wires + 3 Sensors + 1 Comet Igniter + 5 ARC Powercell + 5 Canister + 5 Steel Spring + 1 Fine Wristwatch + 10 Duct Tape + 3 Rusted Bolts + 1 Water Pump + 3 Wasp Driver + 3 Camera Lens + 1 Damaged Heat Sink + 1 Firefly Burner + 3 Voltage Converter",
+        "items": [
+            "25 Plastic Parts",
+            "15 Metal Parts",
+            "5 ARC Alloy",
+            "3 Oil",
+            "1 Snitch Scanner",
+            "3 Wires",
+            "3 Sensors",
+            "1 Comet Igniter",
+            "5 ARC Powercell",
+            "5 Canister",
+            "5 Steel Spring",
+            "1 Fine Wristwatch",
+            "10 Duct Tape",
+            "3 Rusted Bolts",
+            "1 Water Pump",
+            "3 Wasp Driver",
+            "3 Camera Lens",
+            "1 Damaged Heat Sink",
+            "1 Firefly Burner",
+            "3 Voltage Converter"
+        ],
+        "isBundle": true
+    },
+    {
+        "id": "arc-wmm-1",
+        "name": "[Weather Monitor Material] Foundation 1",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-1.jpg",
+        "price": 1.19,
+        "inStock": true,
+        "description": "25 Plastic Parts + 15 Metal Parts + 5 ARC Alloy + 3 Oil",
+        "items": [
+            "25 Plastic Parts",
+            "15 Metal Parts",
+            "5 ARC Alloy",
+            "3 Oil"
+        ]
+    },
+    {
+        "id": "arc-wmm-2",
+        "name": "[Weather Monitor Material] Foundation 2",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-2.jpg",
+        "price": 1.93,
+        "inStock": true,
+        "description": "1 Snitch Scanner + 3 Wires + 3 Sensors + 1 Comet Igniter",
+        "items": [
+            "1 Snitch Scanner",
+            "3 Wires",
+            "3 Sensors",
+            "1 Comet Igniter"
+        ]
+    },
+    {
+        "id": "arc-wmm-3",
+        "name": "[Weather Monitor Material] Foundation 3",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-3.jpg",
+        "price": 2.61,
+        "inStock": true,
+        "description": "5 ARC Powercell + 5 Canister + 5 Steel Spring + 1 Fine Wristwatch",
+        "items": [
+            "5 ARC Powercell",
+            "5 Canister",
+            "5 Steel Spring",
+            "1 Fine Wristwatch"
+        ]
+    },
+    {
+        "id": "arc-wmm-4",
+        "name": "[Weather Monitor Material] Foundation 4",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-4.jpg",
+        "price": 3.96,
+        "inStock": true,
+        "description": "10 Duct Tape + 3 Rusted Bolts + 1 Water Pump + 3 Wasp Driver",
+        "items": [
+            "10 Duct Tape",
+            "3 Rusted Bolts",
+            "1 Water Pump",
+            "3 Wasp Driver"
+        ]
+    },
+    {
+        "id": "arc-wmm-5",
+        "name": "[Weather Monitor Material] Foundation 5",
+        "category": "Weather Monitor Material",
+        "image": "/images/products/arc-weather-5.jpg",
+        "price": 2.67,
+        "inStock": true,
+        "description": "3 Wasp Driver + 3 Camera Lens + 1 Damaged Heat Sink + 1 Firefly Burner",
+        "items": [
+            "3 Wasp Driver",
+            "3 Camera Lens",
+            "1 Damaged Heat Sink",
+            "1 Firefly Burner"
+        ]
+    },
+    {
+        "id": "arc-tdm-1-5",
+        "name": "[Trophy Display Material] Foundation 1~5",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-display.jpg",
+        "price": 102.14,
+        "originalPrice": 107.52,
+        "discount": 5,
+        "inStock": true,
+        "description": "3 Rusted Bolts + 15 Pop Trigger + 15 Tick Pod + 5 Surveyor Vault + 10 Spotter Relay + 3 Expired Respirator + 20 Wasp Driver + 15 Hornet Driver + 10 ARC Performance Steel + 5 Shredder Gyro + 10 Leaper Pulse Unit + 5 Bastion Cell + 10 ARC Synthetic Resin + 10 Magnetic Accelerator + 8 Rocketeer Driver + 3 Queen Reactor + 5 Exodus Modules + 3 Geiger Counter + 8 Bombardier Cell + 3 Matriarch Reactor",
+        "items": [
+            "3 Rusted Bolts",
+            "15 Pop Trigger",
+            "15 Tick Pod",
+            "5 Surveyor Vault",
+            "10 Spotter Relay",
+            "3 Expired Respirator",
+            "20 Wasp Driver",
+            "15 Hornet Driver",
+            "10 ARC Performance Steel",
+            "5 Shredder Gyro",
+            "10 Leaper Pulse Unit",
+            "5 Bastion Cell",
+            "10 ARC Synthetic Resin",
+            "10 Magnetic Accelerator",
+            "8 Rocketeer Driver",
+            "3 Queen Reactor",
+            "5 Exodus Modules",
+            "3 Geiger Counter",
+            "8 Bombardier Cell",
+            "3 Matriarch Reactor"
+        ],
+        "isBundle": true
+    },
+    {
+        "id": "arc-tdm-1",
+        "name": "[Trophy Display Material] Foundation 1",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-1.jpg",
+        "price": 19.34,
+        "inStock": true,
+        "description": "3 Rusted Bolts + 15 Pop Trigger + 15 Tick Pod + 5 Surveyor Vault",
+        "items": [
+            "3 Rusted Bolts",
+            "15 Pop Trigger",
+            "15 Tick Pod",
+            "5 Surveyor Vault"
+        ]
+    },
+    {
+        "id": "arc-tdm-2",
+        "name": "[Trophy Display Material] Foundation 2",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-2.jpg",
+        "price": 30.40,
+        "inStock": true,
+        "description": "10 Spotter Relay + 3 Expired Respirator + 20 Wasp Driver + 15 Hornet Driver",
+        "items": [
+            "10 Spotter Relay",
+            "3 Expired Respirator",
+            "20 Wasp Driver",
+            "15 Hornet Driver"
+        ]
+    },
+    {
+        "id": "arc-tdm-3",
+        "name": "[Trophy Display Material] Foundation 3",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-3.jpg",
+        "price": 22.15,
+        "inStock": true,
+        "description": "10 ARC Performance Steel + 5 Shredder Gyro + 10 Leaper Pulse Unit + 5 Bastion Cell",
+        "items": [
+            "10 ARC Performance Steel",
+            "5 Shredder Gyro",
+            "10 Leaper Pulse Unit",
+            "5 Bastion Cell"
+        ]
+    },
+    {
+        "id": "arc-tdm-4",
+        "name": "[Trophy Display Material] Foundation 4",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-4.jpg",
+        "price": 18.75,
+        "inStock": true,
+        "description": "10 ARC Synthetic Resin + 10 Magnetic Accelerator + 8 Rocketeer Driver + 3 Queen Reactor",
+        "items": [
+            "10 ARC Synthetic Resin",
+            "10 Magnetic Accelerator",
+            "8 Rocketeer Driver",
+            "3 Queen Reactor"
+        ]
+    },
+    {
+        "id": "arc-tdm-5",
+        "name": "[Trophy Display Material] Foundation 5",
+        "category": "Trophy Display Material",
+        "image": "/images/products/arc-trophy-5.jpg",
+        "price": 15.60,
+        "inStock": true,
+        "description": "5 Exodus Modules + 3 Geiger Counter + 8 Bombardier Cell + 3 Matriarch Reactor",
+        "items": [
+            "5 Exodus Modules",
+            "3 Geiger Counter",
+            "8 Bombardier Cell",
+            "3 Matriarch Reactor"
+        ]
+    },
+    {
+        "id": "arc-bp-looting-sk",
+        "name": "[BluePrint] Looting Mk. 3 (Safekeeper)",
+        "category": "BluePrint",
+        "image": "/images/products/arc-bp-looting.jpg",
+        "price": 8.50,
+        "inStock": true,
+        "description": "Looting Mk. 3 (Safekeeper) Blueprint — Increases loot quality and quantity when equipped."
+    },
+    {
+        "id": "arc-bp-tactical-revival",
+        "name": "[BluePrint] Tactical Mk. 3 (Revival)",
+        "category": "BluePrint",
+        "image": "/images/products/arc-bp-tactical.jpg",
+        "price": 9.25,
+        "inStock": true,
+        "description": "Tactical Mk. 3 (Revival) Blueprint — Enhances revival speed and effectiveness."
+    },
+    {
+        "id": "arc-looting-sk",
+        "name": "Looting Mk. 3 (Safekeeper)",
+        "category": "Misc",
+        "subCategory": "Quick Use",
+        "image": "/images/products/arc-looting-sk.jpg",
+        "price": 5.75,
+        "inStock": true,
+        "description": "Pre-crafted Looting Mk. 3 (Safekeeper) — ready to equip."
+    },
+    {
+        "id": "arc-tactical-revival",
+        "name": "Tactical Mk. 3 (Revival)",
+        "category": "Misc",
+        "subCategory": "Quick Use",
+        "image": "/images/products/arc-tactical-revival.jpg",
+        "price": 6.10,
+        "inStock": true,
+        "description": "Pre-crafted Tactical Mk. 3 (Revival) — ready to equip."
+    },
+    {
+        "id": "arc-firefly-burner",
+        "name": "Firefly Burner",
+        "category": "Expedition Material",
+        "image": "/images/products/arc-firefly.jpg",
+        "price": 3.20,
+        "inStock": true,
+        "description": "Rare crafting material used in advanced weapon modifications."
+    },
+    {
+        "id": "arc-comet-igniter",
+        "name": "Comet Igniter",
+        "category": "Expedition Material",
+        "image": "/images/products/arc-comet.jpg",
+        "price": 2.85,
+        "inStock": true,
+        "description": "Essential component for explosive weapon crafting."
+    },
+    {
+        "id": "arc-fine-wristwatch",
+        "name": "Fine Wristwatch",
+        "category": "Expedition Material",
+        "image": "/images/products/arc-wristwatch.jpg",
+        "price": 4.10,
+        "inStock": true,
+        "description": "Valuable trinket used in station upgrades and trading."
+    },
+    {
+        "id": "arc-water-pump",
+        "name": "Water Pump",
+        "category": "Station Material",
+        "image": "/images/products/arc-water-pump.jpg",
+        "price": 1.95,
+        "inStock": true,
+        "description": "Station building material for base construction."
+    },
+    {
+        "id": "arc-camera-lens",
+        "name": "Camera Lens",
+        "category": "Expedition Material",
+        "image": "/images/products/arc-camera.jpg",
+        "price": 2.30,
+        "inStock": true,
+        "description": "Precision optics used in weapon modification and station upgrades."
+    },
+    {
+        "id": "arc-familiar-duck",
+        "name": "Familiar Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-familiar.jpg",
+        "price": 1.50,
+        "inStock": true,
+        "description": "A cute familiar companion duck. Cosmetic collectible."
+    },
+    {
+        "id": "arc-doodly-duck",
+        "name": "Doodly Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-doodly.jpg",
+        "price": 1.50,
+        "inStock": true,
+        "description": "A doodly-style cosmetic duck companion."
+    },
+    {
+        "id": "arc-flashy-duck",
+        "name": "Flashy Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-flashy.jpg",
+        "price": 1.75,
+        "inStock": true,
+        "description": "A flashy neon-styled cosmetic duck companion."
+    },
+    {
+        "id": "arc-alien-duck",
+        "name": "Alien Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-alien.jpg",
+        "price": 2.00,
+        "inStock": true,
+        "description": "An alien-themed cosmetic duck companion. Rare!"
+    },
+    {
+        "id": "arc-tropical-duck",
+        "name": "Tropical Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-tropical.jpg",
+        "price": 1.50,
+        "inStock": true,
+        "description": "A tropical paradise themed duck companion."
+    },
+    {
+        "id": "arc-gentle-duck",
+        "name": "Gentle Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-gentle.jpg",
+        "price": 1.50,
+        "inStock": true,
+        "description": "A gentle, calming cosmetic duck companion."
+    },
+    {
+        "id": "arc-rubber-duck",
+        "name": "Rubber Duck",
+        "category": "Misc",
+        "image": "/images/products/arc-duck-rubber.jpg",
+        "price": 1.25,
+        "inStock": true,
+        "description": "Classic rubber duck. The OG companion."
+    },
+    {
+        "id": "arc-industrial-charger",
+        "name": "Industrial Charger",
+        "category": "Station Material",
+        "image": "/images/products/arc-charger.jpg",
+        "price": 3.45,
+        "inStock": true,
+        "description": "Heavy-duty charging component for station power systems."
+    },
+    {
+        "id": "arc-broken-guidance",
+        "name": "Broken Guidance System",
+        "category": "Expedition Material",
+        "image": "/images/products/arc-guidance.jpg",
+        "price": 5.20,
+        "inStock": true,
+        "description": "Salvaged guidance system — valuable crafting material."
+    },
+    {
+        "id": "arc-tempest-bp",
+        "name": "[BluePrint] Tempest",
+        "category": "BluePrint",
+        "image": "/images/products/arc-bp-tempest.jpg",
+        "price": 15.99,
+        "inStock": true,
+        "description": "Tempest weapon blueprint. Craft one of the most powerful SMGs in the game."
+    },
+    {
+        "id": "arc-bobcat-bp",
+        "name": "[BluePrint] Bobcat",
+        "category": "BluePrint",
+        "image": "/images/products/arc-bp-bobcat.jpg",
+        "price": 12.50,
+        "inStock": true,
+        "description": "Bobcat SMG Blueprint. Versatile close-range weapon."
+    },
+    {
+        "id": "arc-wolfpack-bp",
+        "name": "[BluePrint] Wolfpack",
+        "category": "BluePrint",
+        "image": "/images/products/arc-bp-wolfpack.jpg",
+        "price": 11.75,
+        "inStock": true,
+        "description": "Wolfpack Grenade Blueprint. Essential for crowd control."
+    },
+    {
+        "id": "arc-modded-tempest",
+        "name": "Modded Tempest",
+        "category": "Modded Weapon",
+        "subCategory": "Submachine Guns",
+        "image": "/images/products/arc-modded-tempest.jpg",
+        "price": 25.99,
+        "inStock": true,
+        "description": "Fully modded Tempest SMG with max attachments."
+    },
+    {
+        "id": "arc-modded-bobcat",
+        "name": "Modded Bobcat",
+        "category": "Modded Weapon",
+        "subCategory": "Submachine Guns",
+        "image": "/images/products/arc-modded-bobcat.jpg",
+        "price": 22.50,
+        "inStock": true,
+        "description": "Fully modded Bobcat SMG with best-in-slot mods."
+    },
+    {
+        "id": "arc-sniper-m40",
+        "name": "M40 Sniper Rifle",
+        "category": "Weapon",
+        "subCategory": "Sniper Rifles",
+        "image": "/images/products/arc-m40.jpg",
+        "price": 18.99,
+        "inStock": true,
+        "description": "Clean M40 Sniper Rifle, ready for action."
+    },
+    {
+        "id": "arc-ar-patriot",
+        "name": "Patriot Assault Rifle",
+        "category": "Weapon",
+        "subCategory": "Assault Rifles",
+        "image": "/images/products/arc-patriot.jpg",
+        "price": 16.50,
+        "inStock": true,
+        "description": "Reliable assault rifle for medium-range combat."
+    },
+    {
+        "id": "arc-shield-mk2",
+        "name": "Shield Module Mk.2",
+        "category": "Shield And Augment",
+        "image": "/images/products/arc-shield.jpg",
+        "price": 7.80,
+        "inStock": true,
+        "description": "Advanced shield augment for increased survivability."
+    },
+    {
+        "id": "arc-gate-key",
+        "name": "Locked Gate Key",
+        "category": "Key",
+        "image": "/images/products/arc-key.jpg",
+        "price": 4.50,
+        "inStock": true,
+        "description": "Key to access locked gate events with rare loot."
+    },
+    {
+        "id": "arc-flicker-ember",
+        "name": "Flickering Ember",
+        "category": "Flickering Flames Items",
+        "image": "/images/products/arc-ember.jpg",
+        "price": 6.30,
+        "inStock": true,
+        "description": "Seasonal Flickering Flames event item."
+    },
+    {
+        "id": "arc-loadout-starter",
+        "name": "Starter Loadout Pack",
+        "category": "Loadout",
+        "image": "/images/products/arc-loadout.jpg",
+        "price": 35.00,
+        "originalPrice": 42.00,
+        "discount": 17,
+        "inStock": true,
+        "description": "Complete starter loadout including weapon, shield, and consumables.",
+        "items": [
+            "1 Patriot AR",
+            "1 Shield Module Mk.2",
+            "5 Med Kits",
+            "3 Grenades"
+        ],
+        "isBundle": true
+    }
+]

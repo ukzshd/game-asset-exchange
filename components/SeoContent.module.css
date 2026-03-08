@@ -1,0 +1,235 @@
+.seoContent {
+    padding-top: 24px;
+    border-top: 1px solid var(--border-primary);
+}
+
+.section {
+    margin-bottom: 40px;
+}
+
+.sectionTitle {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.sectionSubTitle {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+/* Coupon Banner */
+.couponBanner {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: var(--radius-md);
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    font-size: var(--font-size-sm);
+    color: var(--accent-cyan);
+}
+
+.couponBanner strong {
+    color: var(--accent-yellow);
+    font-weight: 700;
+}
+
+/* Lists */
+.stepsList,
+.notesList {
+    padding-left: 20px;
+    list-style: decimal;
+}
+
+.stepsList li,
+.notesList li {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 4px;
+}
+
+/* Reviews */
+.reviewsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.reviewCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: all var(--transition-base);
+    text-decoration: none;
+    display: block;
+}
+
+.reviewCard:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    color: inherit;
+}
+
+.reviewStars {
+    color: var(--accent-yellow);
+    font-size: var(--font-size-md);
+    margin-bottom: 8px;
+}
+
+.reviewText {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.trustpilotLink {
+    color: var(--accent-blue);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.trustpilotLink:hover {
+    color: var(--accent-blue-hover);
+}
+
+/* FAQ */
+.faqList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.faqItem {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color var(--transition-fast);
+}
+
+.faqOpen {
+    border-color: var(--accent-blue);
+}
+
+.faqQuestion {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.faqQuestion:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.faqChevron {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.faqOpen .faqChevron {
+    transform: rotate(180deg);
+}
+
+.faqAnswer {
+    padding: 0 18px 14px;
+    animation: slideDown 0.2s ease;
+}
+
+.faqAnswer p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+/* Articles */
+.articlesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.articleCard {
+    display: flex;
+    gap: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: all var(--transition-base);
+}
+
+.articleCard:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.articleImage {
+    width: 180px;
+    height: 120px;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.articleImagePlaceholder {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.articleContent h4 {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.articleContent p {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .reviewsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .articlesGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .articleCard {
+        flex-direction: column;
+    }
+
+    .articleImage {
+        width: 100%;
+    }
+}
