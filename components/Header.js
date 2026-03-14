@@ -6,6 +6,7 @@ import useCartStore from '@/store/cartStore';
 import useCurrencyStore from '@/store/currencyStore';
 import useLanguageStore from '@/store/languageStore';
 import useAuthStore from '@/store/authStore';
+import useHydrated from '@/lib/useHydrated';
 import MegaMenu from './MegaMenu';
 import CartDropdown from './CartDropdown';
 import AuthModal from './AuthModal';
@@ -20,7 +21,7 @@ export default function Header() {
     const [showAuth, setShowAuth] = useState(false);
     const [authTab, setAuthTab] = useState('login');
     const [isScrolled, setIsScrolled] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useHydrated();
 
     const currencyRef = useRef(null);
     const languageRef = useRef(null);
@@ -31,7 +32,6 @@ export default function Header() {
     const { user, init: initAuth, logout } = useAuthStore();
 
     useEffect(() => {
-        setMounted(true);
         initTranslations();
         initAuth();
     }, [initTranslations, initAuth]);
@@ -79,7 +79,7 @@ export default function Header() {
                                 <span className={styles.logoG2}>G</span>
                                 <span className={styles.logoM}>M</span>
                             </div>
-                            <span className={styles.logoSubtext}>I'm Game Gold Master</span>
+                            <span className={styles.logoSubtext}>I&apos;m Game Gold Master</span>
                         </Link>
 
                         {/* Search */}

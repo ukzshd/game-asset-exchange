@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { verifyPassword, generateToken } from '@/lib/auth';
+import { assertRateLimit } from '@/lib/rate-limit';
+import { assertTrustedOrigin } from '@/lib/request-security';
+import { normalizeEmail } from '@/lib/validation';
 
 export async function POST(request) {
     try {
-        const { email, password } = await request.json();
+        assertTrustedOrigin(request);
+        assertRateLimit(request, 'auth-login', { limit: 12, windowMs: 15 * 60 * 1000 });
+
+        const body = await request.json();
+        const email = normalizeEmail(body?.email);
+        const password = body?.password || '';
 
         if (!email || !password) {
             return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
@@ -13,7 +21,7 @@ export async function POST(request) {
         const db = getDb();
         const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
-        if (!user) {
+        if (!user || user.is_active === 0) {
             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
         }
 
@@ -33,11 +41,13 @@ export async function POST(request) {
                 embark_id: user.embark_id,
                 phone: user.phone,
                 referral_code: user.referral_code,
+                referred_by: user.referred_by,
                 created_at: user.created_at,
             },
             token,
         });
     } catch (error) {
+        if (error instanceof Response) return error;
         console.error('Login error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import useCartStore from '@/store/cartStore';
 import useCurrencyStore from '@/store/currencyStore';
+import useHydrated from '@/lib/useHydrated';
 import styles from './page.module.css';
 
 export default function CartPage() {
@@ -11,9 +12,7 @@ export default function CartPage() {
     const { formatPrice } = useCurrencyStore();
     const [couponCode, setCouponCode] = useState('');
     const [couponApplied, setCouponApplied] = useState(false);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => { setMounted(true); }, []);
+    const mounted = useHydrated();
 
     const subtotal = getSubtotal();
     const discount = couponApplied ? subtotal * 0.08 : 0;

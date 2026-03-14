@@ -2,54 +2,49 @@
 
 import { useState, useEffect } from 'react';
 import useAuthStore from '@/store/authStore';
+import useHydrated from '@/lib/useHydrated';
 import styles from './page.module.css';
 
 export default function AffiliatePage() {
     const [copied, setCopied] = useState(false);
     const [stats, setStats] = useState(null);
     const [commissions, setCommissions] = useState([]);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useHydrated();
 
     const { user, token, init: initAuth } = useAuthStore();
 
     useEffect(() => {
-        setMounted(true);
         initAuth();
     }, [initAuth]);
 
     useEffect(() => {
         if (!token) return;
-        fetchStats();
-        fetchCommissions();
+        const fetchAffiliateData = async () => {
+            try {
+                const [statsRes, commissionsRes] = await Promise.all([
+                    fetch('/api/affiliate/stats', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch('/api/affiliate/commissions', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ]);
+
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData.stats);
+                }
+                if (commissionsRes.ok) {
+                    const commissionsData = await commissionsRes.json();
+                    setCommissions(commissionsData.commissions || []);
+                }
+            } catch (err) {
+                console.error('Failed to fetch affiliate data:', err);
+            }
+        };
+
+        fetchAffiliateData();
     }, [token]);
-
-    const fetchStats = async () => {
-        try {
-            const res = await fetch('/api/affiliate/stats', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setStats(data.stats);
-            }
-        } catch (err) {
-            console.error('Failed to fetch affiliate stats:', err);
-        }
-    };
-
-    const fetchCommissions = async () => {
-        try {
-            const res = await fetch('/api/affiliate/commissions', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setCommissions(data.commissions || []);
-            }
-        } catch (err) {
-            console.error('Failed to fetch commissions:', err);
-        }
-    };
 
     const referralLink = stats?.referral_link || `https://iggm.com/?ref=${user?.referral_code || ''}`;
 

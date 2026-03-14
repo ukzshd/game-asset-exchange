@@ -1,23 +1,26 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAuth, verifyPassword, hashPassword } from '@/lib/auth';
+import { assertTrustedOrigin } from '@/lib/request-security';
+import { isStrongEnoughPassword } from '@/lib/validation';
 
 export async function PUT(request) {
     try {
+        assertTrustedOrigin(request);
         const user = await requireAuth(request);
-        const { currentPassword, newPassword } = await request.json();
+        const body = await request.json();
+        const currentPassword = body?.currentPassword || '';
+        const newPassword = body?.newPassword || '';
 
         if (!currentPassword || !newPassword) {
             return NextResponse.json({ error: 'Current and new passwords are required' }, { status: 400 });
         }
-
-        if (newPassword.length < 6) {
-            return NextResponse.json({ error: 'New password must be at least 6 characters' }, { status: 400 });
+        if (!isStrongEnoughPassword(newPassword)) {
+            return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
         }
 
         const db = getDb();
         const fullUser = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id);
-
         const valid = await verifyPassword(currentPassword, fullUser.password_hash);
         if (!valid) {
             return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });

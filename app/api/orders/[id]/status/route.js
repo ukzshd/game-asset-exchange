@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { requireAdmin } from '@/lib/auth';
+import { requireStaff } from '@/lib/auth';
+import { assertAllowedTransition, setOrderStatus } from '@/lib/orders';
+import { assertTrustedOrigin } from '@/lib/request-security';
+import { cleanMultilineText } from '@/lib/validation';
+import { createStripeRefund } from '@/lib/payments/stripe';
 
-// PUT - Admin update order status
 export async function PUT(request, { params }) {
     try {
-        await requireAdmin(request);
+        assertTrustedOrigin(request);
+        const staffUser = await requireStaff(request);
         const { id } = await params;
-        const { status } = await request.json();
-
-        const validStatuses = ['pending', 'paid', 'processing', 'delivered', 'completed', 'refunded', 'cancelled'];
-        if (!validStatuses.includes(status)) {
-            return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 });
-        }
+        const body = await request.json();
+        const nextStatus = body?.status;
+        const note = cleanMultilineText(body?.note, 500);
 
         const db = getDb();
         const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
@@ -20,16 +21,35 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        db.prepare("UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
+        assertAllowedTransition(staffUser, order, nextStatus);
 
-        // If refunded, update affiliate commission status
-        if (status === 'refunded') {
-            db.prepare("UPDATE affiliate_commissions SET status = 'cancelled' WHERE order_id = ?").run(id);
+        let refundReference = '';
+        if (nextStatus === 'refunded' && order.payment_provider === 'stripe' && order.payment_id) {
+            try {
+                const refund = await createStripeRefund(order.payment_id, {
+                    order_id: String(order.id),
+                    order_no: order.order_no,
+                    actor_user_id: String(staffUser.id),
+                });
+                refundReference = refund.id || '';
+            } catch (refundError) {
+                console.error('Stripe refund failed:', refundError);
+                return NextResponse.json({ error: 'Stripe refund failed. Order status was not changed.' }, { status: 502 });
+            }
         }
-        // If completed, mark affiliate commission as paid
-        if (status === 'completed') {
-            db.prepare("UPDATE affiliate_commissions SET status = 'paid' WHERE order_id = ?").run(id);
-        }
+
+        const tx = db.transaction(() => {
+            setOrderStatus(db, {
+                orderId: order.id,
+                currentStatus: order.status,
+                nextStatus,
+                actorUserId: staffUser.id,
+                actorRole: staffUser.role,
+                paymentReference: refundReference,
+                message: note || `Status changed to ${nextStatus}`,
+            });
+        });
+        tx();
 
         const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
         return NextResponse.json({ order: updated });

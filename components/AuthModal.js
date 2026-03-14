@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import useAuthStore from '@/store/authStore';
 import styles from './AuthModal.module.css';
 
@@ -198,7 +199,7 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
                         <div className={styles.terms}>
                             <label className={styles.checkboxLabel}>
                                 <input type="checkbox" required />
-                                <span>I agree to the <a href="/terms">Terms and conditions</a> and <a href="/privacy-policy">Privacy Policy</a></span>
+                                <span>I agree to the <Link href="/terms">Terms and conditions</Link> and <Link href="/privacy-policy">Privacy Policy</Link></span>
                             </label>
                         </div>
                     )}
@@ -210,9 +211,9 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
 
                     {/* Forgot Password */}
                     {tab === 'login' && (
-                        <a href="/forgot-password" className={styles.forgotLink}>
+                        <Link href="/forgot-password" className={styles.forgotLink}>
                             Forgot your password?
-                        </a>
+                        </Link>
                     )}
 
                     {/* Social Login */}

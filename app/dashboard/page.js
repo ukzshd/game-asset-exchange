@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useAuthStore from '@/store/authStore';
+import useHydrated from '@/lib/useHydrated';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState('orders');
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useHydrated();
 
     const { user, token, init: initAuth, updateProfile, changePassword } = useAuthStore();
 
@@ -19,14 +20,29 @@ export default function DashboardPage() {
     const [saveMsg, setSaveMsg] = useState('');
 
     useEffect(() => {
-        setMounted(true);
         initAuth();
     }, [initAuth]);
 
-    // Fetch orders when user is available
     useEffect(() => {
         if (!token) return;
-        fetchOrders();
+        const loadOrders = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch('/api/orders', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setOrders(data.orders || []);
+                }
+            } catch (err) {
+                console.error('Failed to fetch orders:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadOrders();
     }, [token]);
 
     // Init profile form when user loads
@@ -36,33 +52,19 @@ export default function DashboardPage() {
         }
     }, [user]);
 
-    const fetchOrders = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('/api/orders', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setOrders(data.orders || []);
-            }
-        } catch (err) {
-            console.error('Failed to fetch orders:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const getStatusBadge = (status) => {
         const map = {
-            pending: { label: 'Pending', cls: styles.statusProcessing },
+            pending_payment: { label: 'Pending Payment', cls: styles.statusProcessing },
+            payment_failed: { label: 'Payment Failed', cls: styles.statusRefunded },
             paid: { label: 'Paid', cls: styles.statusDelivered },
-            processing: { label: 'Processing', cls: styles.statusProcessing },
+            assigned: { label: 'Assigned', cls: styles.statusProcessing },
+            delivering: { label: 'Delivering', cls: styles.statusProcessing },
             delivered: { label: 'Delivered', cls: styles.statusDelivered },
             completed: { label: 'Completed', cls: styles.statusCompleted },
             refunded: { label: 'Refunded', cls: styles.statusRefunded },
+            cancelled: { label: 'Cancelled', cls: styles.statusRefunded },
         };
-        const s = map[status] || map.pending;
+        const s = map[status] || map.pending_payment;
         return <span className={`${styles.statusBadge} ${s.cls}`}>{s.label}</span>;
     };
 
@@ -136,7 +138,7 @@ export default function DashboardPage() {
                                         <span className={styles.statLabel}>Total Spent</span>
                                     </div>
                                     <div className={styles.statCard}>
-                                        <span className={styles.statValue}>{orders.filter(o => ['pending', 'paid', 'processing'].includes(o.status)).length}</span>
+                                        <span className={styles.statValue}>{orders.filter(o => ['pending_payment', 'paid', 'assigned', 'delivering'].includes(o.status)).length}</span>
                                         <span className={styles.statLabel}>In Progress</span>
                                     </div>
                                 </div>

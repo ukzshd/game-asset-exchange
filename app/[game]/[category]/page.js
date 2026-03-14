@@ -1,12 +1,10 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import gamesData from '@/data/games.json';
 import arcProducts from '@/data/products/arc-raiders.json';
-import useCurrencyStore from '@/store/currencyStore';
-import useCartStore from '@/store/cartStore';
 import ProductCard from '@/components/ProductCard';
 import SeoContent from '@/components/SeoContent';
 import styles from './page.module.css';
@@ -24,9 +22,6 @@ export default function GameCategoryPage() {
     const [subFilter, setSubFilter] = useState('All');
     const [sortBy, setSortBy] = useState('az');
     const [searchQuery, setSearchQuery] = useState('');
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => { setMounted(true); }, []);
 
     const gameData = gamesData.find(g => g.slug === gameSlug);
     const products = productMap[gameSlug] || [];
@@ -54,44 +49,37 @@ export default function GameCategoryPage() {
     const activeMainFilter = activeFilters.find(f => f !== 'All' && subTypes[f]);
     const currentSubTypes = activeMainFilter ? subTypes[activeMainFilter] : null;
 
-    // Filtered products
-    const filteredProducts = useMemo(() => {
-        let result = [...products];
+    let filteredProducts = [...products];
 
-        // Category filter
-        if (!activeFilters.includes('All') && activeFilters.length > 0) {
-            result = result.filter(p => activeFilters.includes(p.category));
-        }
+    if (!activeFilters.includes('All') && activeFilters.length > 0) {
+        filteredProducts = filteredProducts.filter((product) => activeFilters.includes(product.category));
+    }
 
-        // Sub-category filter
-        if (subFilter && subFilter !== 'All' && activeMainFilter) {
-            result = result.filter(p => p.subCategory === subFilter);
-        }
+    if (subFilter && subFilter !== 'All' && activeMainFilter) {
+        filteredProducts = filteredProducts.filter((product) => product.subCategory === subFilter);
+    }
 
-        // Search filter
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            result = result.filter(p => p.name.toLowerCase().includes(q));
-        }
+    if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filteredProducts = filteredProducts.filter((product) => product.name.toLowerCase().includes(query));
+    }
 
-        // Sort
-        switch (sortBy) {
-            case 'az':
-                result.sort((a, b) => a.name.localeCompare(b.name));
-                break;
-            case 'za':
-                result.sort((a, b) => b.name.localeCompare(a.name));
-                break;
-            case 'low':
-                result.sort((a, b) => a.price - b.price);
-                break;
-            case 'high':
-                result.sort((a, b) => b.price - a.price);
-                break;
-        }
-
-        return result;
-    }, [products, activeFilters, subFilter, searchQuery, sortBy, activeMainFilter]);
+    switch (sortBy) {
+        case 'az':
+            filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'za':
+            filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+        case 'low':
+            filteredProducts.sort((a, b) => a.price - b.price);
+            break;
+        case 'high':
+            filteredProducts.sort((a, b) => b.price - a.price);
+            break;
+        default:
+            break;
+    }
 
     const handleFilterToggle = (filter) => {
         if (filter === 'All') {
@@ -251,13 +239,11 @@ export default function GameCategoryPage() {
                 </div>
 
                 {/* Product Grid */}
-                {mounted && (
-                    <div className={styles.productGrid}>
-                        {filteredProducts.map((product) => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
-                )}
+                <div className={styles.productGrid}>
+                    {filteredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                    ))}
+                </div>
 
                 {filteredProducts.length === 0 && mounted && (
                     <div className={styles.noResults}>

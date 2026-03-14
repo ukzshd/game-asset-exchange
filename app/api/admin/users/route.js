@@ -2,29 +2,25 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 
-// GET /api/admin/users - All users (admin)
 export async function GET(request) {
     try {
         await requireAdmin(request);
         const { searchParams } = new URL(request.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '50');
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
         const offset = (page - 1) * limit;
 
         const db = getDb();
-
         const total = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-
         const users = db.prepare(`
-      SELECT id, email, username, embark_id, phone, role, referral_code, created_at
-      FROM users
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(limit, offset);
+            SELECT id, email, username, embark_id, phone, role, referral_code, referred_by, is_active, created_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        `).all(limit, offset);
 
-        // Attach order count for each user
         const getOrderCount = db.prepare('SELECT COUNT(*) as c FROM orders WHERE user_id = ?');
-        const usersWithStats = users.map(user => ({
+        const usersWithStats = users.map((user) => ({
             ...user,
             order_count: getOrderCount.get(user.id).c,
         }));
