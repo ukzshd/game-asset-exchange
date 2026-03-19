@@ -6,11 +6,11 @@ import { requireAuth } from '@/lib/auth';
 export async function GET(request) {
     try {
         const user = await requireAuth(request);
-        const db = getDb();
+        const db = await getDb();
 
-        const stats = db.prepare(`
+        const stats = await db.prepare(`
       SELECT
-        COUNT(*) as total_referrals,
+        COUNT(*)::int as total_referrals,
         COALESCE(SUM(commission_amount), 0) as total_earnings,
         COALESCE(SUM(CASE WHEN status = 'pending' THEN commission_amount ELSE 0 END), 0) as pending_earnings,
         COALESCE(SUM(CASE WHEN status = 'paid' THEN commission_amount ELSE 0 END), 0) as paid_earnings

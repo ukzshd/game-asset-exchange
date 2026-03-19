@@ -13,10 +13,10 @@ export async function GET(request) {
             return NextResponse.json({ query: '', products: [], games: [] });
         }
 
-        const db = getDb();
+        const db = await getDb();
         const like = `%${query}%`;
-        const products = db.prepare(`
-            SELECT id, game_slug, category, sub_category, name, price, in_stock
+        const products = await db.prepare(`
+            SELECT id, external_id, game_slug, category, sub_category, name, description, price, in_stock
             FROM products
             WHERE name LIKE ? OR description LIKE ?
             ORDER BY in_stock DESC, price ASC, name ASC

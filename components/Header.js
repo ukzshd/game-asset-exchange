@@ -2,18 +2,24 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import useCurrencyStore from '@/store/currencyStore';
 import useLanguageStore from '@/store/languageStore';
 import useAuthStore from '@/store/authStore';
 import useHydrated from '@/lib/useHydrated';
+import { getProductPath } from '@/lib/catalog-shared';
 import MegaMenu from './MegaMenu';
 import CartDropdown from './CartDropdown';
 import AuthModal from './AuthModal';
 import styles from './Header.module.css';
 
 export default function Header() {
+    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState({ games: [], products: [] });
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
     const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [showMegaMenu, setShowMegaMenu] = useState(false);
@@ -25,6 +31,7 @@ export default function Header() {
 
     const currencyRef = useRef(null);
     const languageRef = useRef(null);
+    const searchRef = useRef(null);
 
     const { currency, currencies, setCurrency, getCurrentCurrency } = useCurrencyStore();
     const { language, languages, setLanguage, t, initTranslations, isLoaded } = useLanguageStore();
@@ -50,10 +57,52 @@ export default function Header() {
             if (languageRef.current && !languageRef.current.contains(e.target)) {
                 setShowLanguageDropdown(false);
             }
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowSearchResults(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const query = searchQuery.trim();
+        if (query.length < 2) {
+            setSearchResults({ games: [], products: [] });
+            setSearchLoading(false);
+            return undefined;
+        }
+
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            try {
+                setSearchLoading(true);
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`);
+                const payload = await response.json();
+                if (!cancelled) {
+                    setSearchResults({
+                        games: payload.games || [],
+                        products: payload.products || [],
+                    });
+                    setShowSearchResults(true);
+                }
+            } catch (error) {
+                console.error('Header search error:', error);
+                if (!cancelled) {
+                    setSearchResults({ games: [], products: [] });
+                }
+            } finally {
+                if (!cancelled) {
+                    setSearchLoading(false);
+                }
+            }
+        }, 200);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [searchQuery]);
 
     const currentCurrency = getCurrentCurrency();
     const currentLang = languages.find(l => l.code === language) || languages[0];
@@ -61,8 +110,8 @@ export default function Header() {
     const handleSearch = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            // Search functionality
-            console.log('Search:', searchQuery);
+            setShowSearchResults(false);
+            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
         }
     };
 
@@ -83,7 +132,7 @@ export default function Header() {
                         </Link>
 
                         {/* Search */}
-                        <form className={styles.searchBar} onSubmit={handleSearch}>
+                        <form className={styles.searchBar} onSubmit={handleSearch} ref={searchRef}>
                             <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" />
                                 <path d="m21 21-4.3-4.3" />
@@ -93,8 +142,65 @@ export default function Header() {
                                 className={styles.searchInput}
                                 placeholder={isLoaded ? t('nav.searchPlaceholder') : 'Search your game...'}
                                 value={searchQuery}
+                                onFocus={() => {
+                                    if (searchResults.games.length > 0 || searchResults.products.length > 0) {
+                                        setShowSearchResults(true);
+                                    }
+                                }}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                            {(showSearchResults || searchLoading) && (
+                                <div className={styles.searchResults}>
+                                    {searchLoading ? (
+                                        <div className={styles.searchStatus}>Searching...</div>
+                                    ) : (
+                                        <>
+                                            {searchResults.games.length > 0 && (
+                                                <div className={styles.searchSection}>
+                                                    <div className={styles.searchSectionTitle}>Games</div>
+                                                    {searchResults.games.map((game) => (
+                                                        <Link
+                                                            key={game.slug}
+                                                            href={`/${game.slug}/${game.primaryCategory}`}
+                                                            className={styles.searchResultLink}
+                                                            onClick={() => setShowSearchResults(false)}
+                                                        >
+                                                            <span>{game.icon} {game.name}</span>
+                                                            <span className={styles.searchResultMeta}>Game</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {searchResults.products.length > 0 && (
+                                                <div className={styles.searchSection}>
+                                                    <div className={styles.searchSectionTitle}>Products</div>
+                                                    {searchResults.products.map((product) => (
+                                                        <Link
+                                                            key={`${product.game_slug}-${product.id}`}
+                                                            href={getProductPath(product.game_slug, product)}
+                                                            className={styles.searchResultLink}
+                                                            onClick={() => setShowSearchResults(false)}
+                                                        >
+                                                            <span>{product.name}</span>
+                                                            <span className={styles.searchResultMeta}>${Number(product.price).toFixed(2)}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {searchResults.games.length === 0 && searchResults.products.length === 0 && (
+                                                <div className={styles.searchStatus}>No matches found.</div>
+                                            )}
+                                            <Link
+                                                href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
+                                                className={styles.searchAllLink}
+                                                onClick={() => setShowSearchResults(false)}
+                                            >
+                                                View all search results
+                                            </Link>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </form>
 
                         {/* Right Actions */}

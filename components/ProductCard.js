@@ -1,15 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import useCurrencyStore from '@/store/currencyStore';
 import useCartStore from '@/store/cartStore';
+import { getProductIcon, getProductPath } from '@/lib/catalog-shared';
 import styles from './ProductCard.module.css';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, gameSlug }) {
     const [quantity, setQuantity] = useState(1);
     const [showDesc, setShowDesc] = useState(false);
     const { formatPrice } = useCurrencyStore();
     const { addItem } = useCartStore();
+    const productPath = gameSlug ? getProductPath(gameSlug, product) : null;
+    const originalPrice = product.originalPrice || product.original_price || 0;
+    const isBundle = product.isBundle || product.is_bundle;
 
     const handleQtyChange = (delta) => {
         setQuantity(prev => Math.max(1, prev + delta));
@@ -33,22 +38,25 @@ export default function ProductCard({ product }) {
             )}
 
             {/* Image */}
-            <div className={styles.imageWrap} onClick={() => setShowDesc(!showDesc)}>
-                <div className={styles.imagePlaceholder}>
-                    <div className={styles.imageIcon}>
-                        {product.category === 'BluePrint' ? '📋' :
-                            product.category === 'Weapon' ? '🔫' :
-                                product.category === 'Modded Weapon' ? '⚡' :
-                                    product.category === 'Key' ? '🔑' :
-                                        product.category === 'Shield And Augment' ? '🛡️' :
-                                            product.category === 'Loadout' ? '🎒' :
-                                                product.category === 'Misc' ? '🦆' : '📦'}
+            {productPath ? (
+                <Link href={productPath} className={styles.imageWrap}>
+                    <div className={styles.imagePlaceholder}>
+                        <div className={styles.imageIcon}>{getProductIcon(product.category)}</div>
+                        {isBundle && (
+                            <span className={styles.bundleTag}>BUNDLE</span>
+                        )}
                     </div>
-                    {product.isBundle && (
-                        <span className={styles.bundleTag}>BUNDLE</span>
-                    )}
+                </Link>
+            ) : (
+                <div className={styles.imageWrap} onClick={() => setShowDesc(!showDesc)}>
+                    <div className={styles.imagePlaceholder}>
+                        <div className={styles.imageIcon}>{getProductIcon(product.category)}</div>
+                        {isBundle && (
+                            <span className={styles.bundleTag}>BUNDLE</span>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Description Tooltip */}
             {showDesc && product.items && (
@@ -63,9 +71,17 @@ export default function ProductCard({ product }) {
             )}
 
             {/* Name */}
-            <h3 className={styles.name} title={product.name}>
-                {product.name}
-            </h3>
+            {productPath ? (
+                <Link href={productPath} className={styles.nameLink}>
+                    <h3 className={styles.name} title={product.name}>
+                        {product.name}
+                    </h3>
+                </Link>
+            ) : (
+                <h3 className={styles.name} title={product.name}>
+                    {product.name}
+                </h3>
+            )}
 
             {/* Quantity */}
             <div className={styles.qtyRow}>
@@ -83,8 +99,8 @@ export default function ProductCard({ product }) {
             {/* Price */}
             <div className={styles.priceRow}>
                 <span className={styles.price}>{formatPrice(product.price)}</span>
-                {product.originalPrice && (
-                    <span className={styles.originalPrice}>{formatPrice(product.originalPrice)}</span>
+                {originalPrice > 0 && originalPrice !== product.price && (
+                    <span className={styles.originalPrice}>{formatPrice(originalPrice)}</span>
                 )}
             </div>
 

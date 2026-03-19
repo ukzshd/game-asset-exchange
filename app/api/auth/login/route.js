@@ -18,8 +18,8 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
         }
 
-        const db = getDb();
-        const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        const db = await getDb();
+        const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
         if (!user || user.is_active === 0) {
             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });

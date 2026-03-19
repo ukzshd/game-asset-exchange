@@ -83,12 +83,12 @@ describe('order and payment flow', () => {
         const paymentPayload = await paymentResponse.json();
         expect(paymentPayload.checkoutUrl).toBe('https://checkout.stripe.test/session/cs_test_123');
 
-        const db = getDb();
-        const savedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderPayload.order.id);
+        const db = await getDb();
+        const savedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderPayload.order.id);
         expect(savedOrder.payment_session_id).toBe('cs_test_123');
         expect(savedOrder.payment_provider).toBe('stripe');
 
-        const logs = db.prepare('SELECT event_type FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderPayload.order.id);
+        const logs = await db.prepare('SELECT event_type FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderPayload.order.id);
         expect(logs.map((entry) => entry.event_type)).toEqual(['created', 'payment_session_created']);
     });
 
@@ -171,13 +171,13 @@ describe('order and payment flow', () => {
         );
         expect(completedResponse.status).toBe(200);
 
-        const db = getDb();
-        const finalOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const db = await getDb();
+        const finalOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
         expect(finalOrder.status).toBe('completed');
         expect(finalOrder.delivered_at).toBeTruthy();
         expect(finalOrder.completed_at).toBeTruthy();
 
-        const logs = db.prepare('SELECT event_type, to_status FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderId);
+        const logs = await db.prepare('SELECT event_type, to_status FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderId);
         expect(logs.map((entry) => `${entry.event_type}:${entry.to_status || ''}`)).toContain('assigned:assigned');
         expect(logs.map((entry) => `${entry.event_type}:${entry.to_status || ''}`)).toContain('status_changed:completed');
         expect(supportUser.role).toBe('support');
@@ -203,8 +203,8 @@ describe('order and payment flow', () => {
         }));
         const { order } = await orderResponse.json();
 
-        const db = getDb();
-        db.prepare(`
+        const db = await getDb();
+        await db.prepare(`
             UPDATE orders
             SET status = 'paid', payment_provider = 'stripe', payment_id = 'pi_paid_refund', payment_status = 'paid'
             WHERE id = ?
@@ -220,7 +220,7 @@ describe('order and payment flow', () => {
         );
 
         expect(refundResponse.status).toBe(200);
-        const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+        const updatedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
         expect(updatedOrder.status).toBe('refunded');
         expect(updatedOrder.payment_status).toBe('refunded');
         expect(updatedOrder.payment_reference).toBe('re_test_123');

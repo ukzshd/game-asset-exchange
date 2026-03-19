@@ -1,22 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getProductByGameAndIdentifier, getRelatedProducts } from '@/lib/catalog';
 
 export async function GET(_request, { params }) {
     try {
         const { game, id } = await params;
-        const db = getDb();
-        const product = db.prepare('SELECT * FROM products WHERE game_slug = ? AND id = ?').get(game, id);
+        const product = await getProductByGameAndIdentifier(game, id);
 
         if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
 
-        const related = db.prepare(`
-            SELECT * FROM products
-            WHERE game_slug = ? AND id != ? AND category = ?
-            ORDER BY price ASC
-            LIMIT 6
-        `).all(game, id, product.category);
+        const related = await getRelatedProducts(game, product.id, product.category, 6);
 
         return NextResponse.json({ product, related });
     } catch (error) {

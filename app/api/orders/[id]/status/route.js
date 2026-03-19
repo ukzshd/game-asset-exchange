@@ -15,8 +15,8 @@ export async function PUT(request, { params }) {
         const nextStatus = body?.status;
         const note = cleanMultilineText(body?.note, 500);
 
-        const db = getDb();
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+        const db = await getDb();
+        const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
@@ -38,8 +38,8 @@ export async function PUT(request, { params }) {
             }
         }
 
-        const tx = db.transaction(() => {
-            setOrderStatus(db, {
+        const tx = db.transaction(async () => {
+            await setOrderStatus(db, {
                 orderId: order.id,
                 currentStatus: order.status,
                 nextStatus,
@@ -49,9 +49,9 @@ export async function PUT(request, { params }) {
                 message: note || `Status changed to ${nextStatus}`,
             });
         });
-        tx();
+        await tx();
 
-        const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+        const updated = await db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
         return NextResponse.json({ order: updated });
     } catch (error) {
         if (error instanceof Response) return error;

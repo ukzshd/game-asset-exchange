@@ -18,8 +18,8 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
         }
 
-        const db = getDb();
-        const target = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+        const db = await getDb();
+        const target = await db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
         if (!target) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
@@ -27,8 +27,8 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'You cannot demote your own admin account' }, { status: 400 });
         }
 
-        db.prepare('UPDATE users SET role = ? WHERE id = ?').run(nextRole, id);
-        const updated = db.prepare(`
+        await db.prepare('UPDATE users SET role = ? WHERE id = ?').run(nextRole, id);
+        const updated = await db.prepare(`
             SELECT id, email, username, embark_id, phone, role, referral_code, referred_by, is_active, created_at
             FROM users WHERE id = ?
         `).get(id);

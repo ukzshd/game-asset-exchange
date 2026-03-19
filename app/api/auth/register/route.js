@@ -26,23 +26,23 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
         }
 
-        const db = getDb();
-        const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+        const db = await getDb();
+        const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
         if (existing) {
             return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
         }
 
         let referralCode = generateReferralCode();
-        while (db.prepare('SELECT id FROM users WHERE referral_code = ?').get(referralCode)) {
+        while (await db.prepare('SELECT id FROM users WHERE referral_code = ?').get(referralCode)) {
             referralCode = generateReferralCode();
         }
 
         const passwordHash = await hashPassword(password);
-        const result = db.prepare(
+        const result = await db.prepare(
             'INSERT INTO users (email, password_hash, username, referral_code, referred_by) VALUES (?, ?, ?, ?, ?)'
         ).run(email, passwordHash, username, referralCode, referredBy || '');
 
-        const user = db.prepare(`
+        const user = await db.prepare(`
             SELECT id, email, username, role, embark_id, phone, referral_code, referred_by, created_at
             FROM users WHERE id = ?
         `).get(result.lastInsertRowid);

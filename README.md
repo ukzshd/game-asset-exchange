@@ -1,129 +1,182 @@
-# IGGM-Style Game Marketplace
+# IGGM-Style Game Asset Exchange
 
-English summary: this repository is a Next.js 16 full-stack game-item marketplace prototype inspired by IGGM, with a real Stripe payment flow, a staff-facing order operations workflow, JWT auth, SQLite persistence, and a frontend that still prioritizes the original marketplace-like browsing experience.
+English summary: this repository is a Next.js 16 full-stack marketplace prototype for game assets. It now includes a real Stripe checkout flow, webhook-driven payment confirmation, staff order operations, searchable catalog pages backed by PostgreSQL, product detail pages, admin-side product management, and SEO-supporting routes such as `robots.txt`, `sitemap.xml`, page metadata, and JSON-LD.
 
 ---
 
 ## 中文
 
-### 1. 项目定位
+### 1. 项目介绍
 
-这是一个 **IGGM 风格的游戏道具交易平台原型**，目标是围绕以下业务闭环搭建系统：
+这是一个仿 IGGM 交易站业务模型的全栈原型，目标是承载下面这条闭环：
 
-`浏览商品 -> 加入购物车 -> 填写游戏交付信息 -> Stripe 支付 -> 后台接单/派单 -> 人工游戏内交付 -> 订单完结`
+`浏览商品 -> 加入购物车 -> 填写游戏交付信息 -> 法币支付 -> 平台确认收款 -> 运营派单 -> 人工游戏内交付 -> 订单完结`
 
-当前代码库已经不再是“纯前端复刻 + 模拟支付”的状态，而是一个 **后端优先补强后的可运行原型**：
+当前仓库已经不是“前端静态复刻”或“模拟支付 demo”。
 
-- 商品浏览、购物车、结账、用户中心、推广页、运营后台都可运行
-- 支付已经接入 **Stripe Checkout + Webhook**
-- 后台支持 **admin / support / worker** 角色
-- 订单状态流转已经改成 **受限状态机**
-- 已有 **派单、订单日志、基础限流、输入校验、搜索 API、SEO 路由、自动化测试**
+它现在具备：
 
-它仍然不是最终商业化版本，原因是以下能力还没有做完：
+- 真实 Stripe Checkout 支付链路
+- Stripe Webhook 支付确认
+- 用户下单、支付、查看订单
+- `admin / support / worker / user` 角色体系
+- 后台派单、推进订单状态、退款
+- 后台商品管理
+- 数据库驱动的商品目录页
+- 商品详情页
+- Header 全站搜索结果面板
+- 独立搜索页
+- 动态 `sitemap.xml` / `robots.txt`
+- 页面级 metadata 和 JSON-LD
+- 自动化测试、lint、build 验证
 
-- PayPal 尚未接入
-- 邮件系统未接入
-- 商品详情 API 已完成，但商品详情页 UI 还未做
-- 全站搜索 API 已完成，但 Header 搜索框还没有接入真实结果面板
-- 只有 ARC Raiders 有真实商品数据
-- 没有 CMS / JSON-LD / OG 卡片
-- 没有实时通知、风控、设备指纹、聊天系统
+### 2. 当前项目定位
 
-### 2. 当前实现状态
+更准确的定位是：
 
-#### 已实现
+- 一个 **后端优先完善后的交易平台原型**
+- 前台仍保留 IGGM 风格的浏览体验
+- 运营流程、支付链路、SEO 基础设施已经接上
+- 还没有接入的内容，主要剩下 **外部服务型能力**
 
-- Next.js 16 App Router 全栈项目
-- SQLite 自动初始化和迁移
-- 用户注册 / 登录 / JWT 鉴权 / 修改资料 / 修改密码
-- 用户角色：`user` / `worker` / `support` / `admin`
-- 商品列表页、购物车、结账、用户中心、推广页、运营后台
-- Stripe Checkout 创建支付会话
-- Stripe Webhook 验签并推进订单为 `paid`
-- 支付确认接口（前端从 Stripe 返回后对账）
-- 订单受限状态机
-- 订单派单
+当前仍未完成或只做了基础版的部分：
+
+- PayPal 真接入
+- 邮件发送、验证码、找回密码邮件
+- Steam / Discord / Google OAuth
+- 实时客服通知机器人
+- 设备指纹 / 高级风控
+- CMS 内容管理后台
+- 实时汇率同步服务
+
+也就是说，仓库里“本地可开发完成”的高价值部分，已经基本补到位；剩余缺口主要依赖第三方账号、外部 API 凭据或更重的运营系统扩展。
+
+---
+
+## 3. 已实现能力
+
+### 前台
+
+- 首页
+- 游戏目录页 `/[game]/[category]`
+- 购物车 `/cart`
+- 结账页 `/checkout`
+- 用户中心 `/dashboard`
+- 推广页 `/affiliate`
+- 搜索页 `/search`
+- 商品详情页 `/[game]/product/[id]`
+- Header 即时搜索结果
+
+### 后端业务
+
+- JWT 登录注册
+- 资料修改 / 密码修改
+- PostgreSQL 自动建表 + 自动迁移
+- 订单创建
+- Stripe Checkout 会话创建
+- Stripe Webhook 验签
+- 支付成功后订单推进到 `paid`
+- 订单状态机约束
+- 派单
 - 订单状态日志
-- Stripe 退款联动（后台把订单改成 `refunded` 时会真实调用 Stripe Refund）
-- 全站搜索 API
+- Stripe 退款联动
+- 商品管理 API
+- 搜索 API
 - 商品详情 API
-- 动态 `robots.txt` 和 `sitemap.xml`
-- 全局安全响应头
-- 写接口的基础跨站请求防护
-- 本地多币种展示
-- 中英双语资源
+
+### 运营后台
+
+- 查看订单
+- 查看用户
+- 修改用户角色
+- 派单给 `support / worker`
+- 推进订单状态
+- 管理商品：新增 / 编辑 / 删除
+
+### SEO 与可索引性
+
+- Next.js App Router
+- 页面级 metadata
+- 商品详情页 JSON-LD
+- 动态 `robots.txt`
+- 动态 `sitemap.xml`
+- 商品详情页可索引 URL
+
+### 安全基础
+
+- JWT + bcrypt
 - 基础限流
-- 基础输入清洗 / 校验
-- 自动化测试 + 构建验证
+- 写接口 Origin / Referer 防护
+- 安全响应头
+- 输入清洗与长度限制
 
-#### 当前主要限制
+### 工程验证
 
-- 真实支付目前 **只支持 Stripe**，PayPal 在界面中已禁用
-- 订单仍然是人工交付，没有客服聊天、交付截图上传、自动通知机器人
-- 多语言仍只有 `en / zh`
-- 多币种汇率仍是本地静态数据，不是实时汇率服务
-- 后台是运营原型，不是完整 ERP / OMS
+- `npm run lint`
+- `npm test`
+- `npm run build`
+- `npm run verify`
 
 ---
 
-### 3. 技术栈
+## 4. 技术栈
 
-| 层级 | 技术 |
+| 层 | 技术 |
 |---|---|
-| 框架 | Next.js 16.1.6 (App Router) |
-| 前端 | React 19.2.3 |
-| 数据库 | SQLite + better-sqlite3 |
-| 认证 | jose (JWT) + bcryptjs |
-| 支付 | Stripe Checkout + Stripe Webhooks |
+| 前端/全栈框架 | Next.js 16.1.6 |
+| 视图库 | React 19.2.3 |
+| 数据库 | PostgreSQL + `pg` |
+| 认证 | jose + bcryptjs |
+| 支付 | Stripe Checkout + Webhook |
 | 状态管理 | Zustand |
-| 样式 | CSS Modules + CSS Variables |
+| 样式 | CSS Modules |
 | 测试 | Vitest |
-| 构建校验 | ESLint + Next build |
+| 校验 | ESLint + Next build |
 
 ---
 
-### 4. 核心业务流程
+## 5. 核心业务流程
 
-#### 用户侧
+### 用户流程
 
-1. 浏览商品目录 `/[game]/[category]`
-2. 加入购物车 `/cart`
-3. 在 `/checkout` 填写交付信息
+1. 进入游戏目录页浏览商品
+2. 加入购物车
+3. 在结账页填写游戏交付信息
 4. 创建订单
-5. 跳转到 Stripe Hosted Checkout
-6. 支付成功后返回站点
-7. 站点调用 `/api/payments/confirm` 做支付对账
-8. 用户在 `/dashboard` 查看订单状态
+5. 跳转 Stripe Checkout 完成支付
+6. Stripe 回调通知平台支付成功
+7. 前端从支付成功页返回后调用确认接口对账
+8. 用户在个人中心查看订单状态
 
-#### 运营侧
+### 运营流程
 
-1. 支付成功后订单进入 `paid`
+1. 订单进入 `paid`
 2. `admin` 或 `support` 在 `/admin` 查看订单
-3. 将订单分配给 `worker` 或 `support`
-4. 被分配人员推进状态：`assigned -> delivering -> delivered`
-5. `admin` / `support` 最终推进到 `completed`
-6. 若发生售后，`admin` / `support` 可推进到 `refunded`，并触发 Stripe Refund
+3. 派单给 `worker` 或 `support`
+4. 被分配人员推进：
+   - `assigned -> delivering -> delivered`
+5. `admin / support` 收尾推进到 `completed`
+6. 如需售后，可推进到 `refunded` 并触发 Stripe Refund
 
 ---
 
-### 5. 订单状态机
+## 6. 订单状态机
 
-当前订单状态定义如下：
+### 状态列表
 
 | 状态 | 含义 |
 |---|---|
-| `pending_payment` | 已创建订单，等待支付 |
-| `paid` | Stripe 确认支付成功 |
-| `assigned` | 已分配给客服/打手 |
+| `pending_payment` | 订单已创建，等待支付 |
+| `paid` | 已确认支付成功 |
+| `assigned` | 已派单 |
 | `delivering` | 正在交付 |
-| `delivered` | 已交付完成，待收尾 |
-| `completed` | 订单完结 |
+| `delivered` | 已交付 |
+| `completed` | 已完成 |
 | `payment_failed` | 支付失败 |
 | `cancelled` | 未支付阶段取消 |
 | `refunded` | 已退款 |
 
-#### 状态流转约束
+### 流转规则
 
 - `pending_payment -> paid / cancelled / payment_failed`
 - `payment_failed -> pending_payment / cancelled`
@@ -132,80 +185,20 @@ English summary: this repository is a Next.js 16 full-stack game-item marketplac
 - `delivering -> delivered / refunded`
 - `delivered -> completed / refunded`
 
-#### 角色权限
+### 权限规则
 
 | 角色 | 能力 |
 |---|---|
 | `user` | 下单、支付、查看自己的订单 |
-| `worker` | 只能处理分配给自己的订单，且只能做 `assigned -> delivering -> delivered` |
-| `support` | 可查看全部订单、派单、推进大多数运营状态 |
-| `admin` | 拥有全部能力，且可修改用户角色 |
+| `worker` | 只能操作分配给自己的订单，且只能做 `assigned -> delivering -> delivered` |
+| `support` | 查看全部订单、派单、推进大多数运营状态 |
+| `admin` | 全部能力，且可管理用户角色和商品 |
 
 ---
 
-### 6. 主要页面
+## 7. 数据模型概览
 
-| 路由 | 说明 |
-|---|---|
-| `/` | 首页 |
-| `/[game]/[category]` | 商品目录页 |
-| `/cart` | 购物车 |
-| `/checkout` | 结账页，真实支付入口 |
-| `/dashboard` | 用户中心 / 订单历史 |
-| `/affiliate` | 推广佣金页 |
-| `/admin` | 运营后台 |
-
----
-
-### 7. 主要 API
-
-#### 鉴权
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `PUT /api/auth/profile`
-- `PUT /api/auth/password`
-
-#### 商品
-
-- `GET /api/products/[game]`
-- `GET /api/products/[game]/[id]`
-
-#### 搜索
-
-- `GET /api/search?q=keyword&limit=10`
-
-#### 订单
-
-- `POST /api/orders`
-- `GET /api/orders`
-- `GET /api/orders/[id]`
-- `PUT /api/orders/[id]/status`
-
-#### 支付
-
-- `POST /api/payments/create`
-- `POST /api/payments/confirm`
-- `POST /api/payments/webhook`
-
-#### 运营后台
-
-- `GET /api/admin/orders`
-- `PUT /api/admin/orders/[id]/assign`
-- `GET /api/admin/users`
-- `PUT /api/admin/users/[id]/role`
-
-#### 推广
-
-- `GET /api/affiliate/stats`
-- `GET /api/affiliate/commissions`
-
----
-
-### 8. 数据库结构概览
-
-当前核心表：
+### 核心表
 
 - `users`
 - `products`
@@ -215,416 +208,490 @@ English summary: this repository is a Next.js 16 full-stack game-item marketplac
 - `affiliate_commissions`
 - `order_status_logs`
 
-#### `orders` 表当前额外包含的关键字段
+### `products` 关键字段
 
-- 用户交付信息：`embark_id`, `character_name`, `delivery_email`, `delivery_contact`, `delivery_platform`, `delivery_server`
+- `id`
+- `external_id`
+- `game_slug`
+- `category`
+- `sub_category`
+- `name`
+- `description`
+- `price`
+- `original_price`
+- `discount`
+- `in_stock`
+- `image`
+
+`external_id` 的作用：
+
+- 保留原始商品标识
+- 支持 `/[game]/product/[external_id]` 这样的详情页路由
+- 兼容旧数据时会自动回填 ARC Raiders 的历史 JSON 商品 ID
+
+### `orders` 关键字段
+
+- 游戏交付：`embark_id`, `character_name`, `delivery_email`, `delivery_contact`, `delivery_platform`, `delivery_server`
 - 支付信息：`payment_provider`, `payment_id`, `payment_session_id`, `payment_reference`, `payment_status`
 - 运营信息：`assigned_to`, `assigned_at`, `assigned_by`, `delivered_at`, `completed_at`, `last_status_changed_at`
 
-#### 订单日志表 `order_status_logs`
+### `order_status_logs`
 
-用于记录：
+记录：
 
 - 订单创建
-- 支付会话创建
+- 创建支付会话
+- 派单
+- 状态推进
 - 支付确认
-- 状态变更
-- 派单记录
+- 退款等操作
 
-这保证了最基础的可追踪性，而不是只在 `orders.status` 上覆盖写。
+这保证了订单不是只靠 `orders.status` 单字段覆盖更新，而是有最基础的审计轨迹。
 
 ---
 
-### 9. 环境变量
+## 8. 主要页面
 
-复制一份 `.env.local`：
+| 路由 | 说明 |
+|---|---|
+| `/` | 首页 |
+| `/[game]/[category]` | 商品目录页，已接数据库商品数据 |
+| `/[game]/product/[id]` | 商品详情页，支持数值 ID 和 `external_id` |
+| `/search?q=keyword` | 独立搜索页 |
+| `/cart` | 购物车 |
+| `/checkout` | 结账与支付入口 |
+| `/dashboard` | 用户中心 / 历史订单 |
+| `/affiliate` | 推广佣金页 |
+| `/admin` | 运营后台 |
+
+---
+
+## 9. 主要 API
+
+### 鉴权
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `PUT /api/auth/profile`
+- `PUT /api/auth/password`
+
+### 商品与搜索
+
+- `GET /api/products/[game]`
+- `GET /api/products/[game]/[id]`
+- `GET /api/search?q=keyword&limit=10`
+
+### 订单
+
+- `POST /api/orders`
+- `GET /api/orders`
+- `GET /api/orders/[id]`
+- `PUT /api/orders/[id]/status`
+
+### 支付
+
+- `POST /api/payments/create`
+- `POST /api/payments/confirm`
+- `POST /api/payments/webhook`
+
+### 运营后台
+
+- `GET /api/admin/orders`
+- `PUT /api/admin/orders/[id]/assign`
+- `GET /api/admin/users`
+- `PUT /api/admin/users/[id]/role`
+- `GET /api/admin/products`
+- `POST /api/admin/products`
+- `PUT /api/admin/products/[id]`
+- `DELETE /api/admin/products/[id]`
+
+### 推广
+
+- `GET /api/affiliate/stats`
+- `GET /api/affiliate/commissions`
+
+---
+
+## 10. 目录结构
+
+```text
+app/
+  [game]/[category]/              数据库驱动的目录页
+  [game]/product/[id]/            商品详情页
+  admin/                          运营后台
+  api/                            所有服务端 API
+  cart/ checkout/ dashboard/      核心交易页面
+  search/                         独立搜索页
+  robots.js                       动态 robots.txt
+  sitemap.js                      动态 sitemap.xml
+
+components/
+  Header.js                       已接全站搜索结果面板
+  ProductCard.js                  商品卡片，支持跳转详情页
+  SeoContent.js                   SEO 内容区
+
+data/
+  games.json
+  products/arc-raiders.json
+
+lib/
+  auth.js                         JWT / 权限
+  catalog.js                      服务端商品读取
+  catalog-shared.js               客户端共享商品路径/图标工具
+  db.js                           PostgreSQL 初始化与迁移
+  orders.js                       订单状态机与日志
+  payments/stripe.js              Stripe 封装
+  rate-limit.js                   限流
+  request-security.js             基础跨站请求防护
+  validation.js                   输入清洗
+
+scripts/
+  bootstrap-admin.mjs             管理员初始化脚本
+
+tests/
+  lib.test.js
+  api-read.test.js
+  order-flow.test.js
+  admin-products.test.js
+```
+
+---
+
+## 11. 本地启动
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 准备环境变量
 
 ```bash
 cp .env.example .env.local
 ```
 
-必填变量：
-
-| 变量 | 说明 |
-|---|---|
-| `JWT_SECRET` | JWT 签名密钥，部署时必须替换为长随机字符串 |
-| `NEXT_PUBLIC_APP_URL` | 站点公开地址，例如 `http://localhost:3000` |
-| `STRIPE_SECRET_KEY` | Stripe Secret Key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook Signing Secret |
-
-可选变量：
-
-| 变量 | 说明 |
-|---|---|
-| `IGGM_DB_PATH` | 自定义 SQLite 文件路径，测试和多环境隔离时有用 |
-| `DATABASE_PATH` | `IGGM_DB_PATH` 的兼容别名 |
-
-示例：
+至少配置：
 
 ```env
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/game_asset_exchange
 JWT_SECRET=replace-with-a-long-random-secret
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 
-> 说明：如果本地没有配置 `JWT_SECRET`，开发/构建阶段会使用一个不安全的 fallback，并打印警告。部署时不能依赖这个 fallback。
+可选：
 
----
-
-### 10. 本地启动
-
-#### 安装依赖
-
-```bash
-npm install
+```env
+APP_URL=http://localhost:3000
 ```
 
-#### 启动开发服务器
+说明：
+
+- `DATABASE_URL` 是 PostgreSQL 连接串，开发和生产都必需
+- `JWT_SECRET` 部署前必须设置真实随机值
+- `APP_URL` 可作为 `NEXT_PUBLIC_APP_URL` 的后备
+
+### 3. 启动开发环境
 
 ```bash
 npm run dev
 ```
 
-打开：
-
-- [http://localhost:3000](http://localhost:3000)
-
-数据库默认在：
-
-- `data/iggm.db`
-
-数据库会在首次访问相关 API 时自动初始化并迁移。
-
 ---
 
-### 11. 初始化管理员账号
+## 12. PostgreSQL 本地准备
 
-项目不会自动内置管理员账号。
+如果你本机已经有 PostgreSQL，可以直接跳到下面的“创建数据库”。
 
-请运行：
+### macOS 常见准备方式
+
+如果你用 Homebrew：
+
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+```
+
+确认 PostgreSQL 已启动：
+
+```bash
+pg_isready
+```
+
+### 创建数据库
+
+最简单方式：
+
+```bash
+createdb game_asset_exchange
+```
+
+如果你要显式指定用户：
+
+```bash
+createdb -U postgres game_asset_exchange
+```
+
+### 手动创建用户和授权
+
+如果你不想直接使用默认 `postgres` 用户，可以进入 `psql`：
+
+```bash
+psql postgres
+```
+
+然后执行：
+
+```sql
+CREATE ROLE game_asset_user WITH LOGIN PASSWORD 'change-this-password';
+CREATE DATABASE game_asset_exchange OWNER game_asset_user;
+GRANT ALL PRIVILEGES ON DATABASE game_asset_exchange TO game_asset_user;
+```
+
+### `DATABASE_URL` 示例
+
+使用默认本地用户：
+
+```env
+DATABASE_URL=postgresql://postgres@127.0.0.1:5432/game_asset_exchange
+```
+
+使用独立账号：
+
+```env
+DATABASE_URL=postgresql://game_asset_user:change-this-password@127.0.0.1:5432/game_asset_exchange
+```
+
+### 连接验证
+
+可以先手工验证数据库能否连通：
+
+```bash
+psql "$DATABASE_URL" -c "SELECT NOW();"
+```
+
+### 应用初始化说明
+
+项目首次连接 PostgreSQL 时会自动：
+
+- 创建核心表
+- 执行缺失字段迁移
+- 写入基础商品和优惠券种子数据
+
+你不需要再单独手动跑迁移脚本。
+
+### 管理员初始化前提
+
+在运行管理员初始化脚本前，必须先确保：
+
+- PostgreSQL 已启动
+- `DATABASE_URL` 已正确配置
+- 对应数据库已经创建
+
+然后再执行：
 
 ```bash
 npm run bootstrap:admin -- --email admin@example.com --password StrongPassword123 --username admin
 ```
 
-这个脚本会：
-
-- 如果用户不存在：创建一个 `admin`
-- 如果用户已存在：把该用户提升为 `admin` 并更新密码
-
-脚本文件：
-
-- [scripts/bootstrap-admin.mjs](/Users/mac/Documents/project/web/scripts/bootstrap-admin.mjs)
-
-初始化管理员后，你可以：
-
-1. 用这个账号登录站点
-2. 打开 `/admin`
-3. 将其他账号改成 `support` 或 `worker`
-4. 用这些角色测试派单和订单流转
-
 ---
 
-### 12. Stripe 本地联调
+## 13. Stripe 本地联调
 
-#### 1. 启动站点
+### 1. 启动本地站点
 
 ```bash
 npm run dev
 ```
 
-#### 2. 启动 Stripe CLI 转发 webhook
+### 2. 本地转发 webhook
 
 ```bash
 stripe listen --forward-to localhost:3000/api/payments/webhook
 ```
 
-Stripe CLI 会输出一个 `whsec_...`，把它写进 `.env.local` 的 `STRIPE_WEBHOOK_SECRET`。
+CLI 会输出一个 `whsec_...`，把它填进：
 
-#### 3. 在站点中发起支付
-
-前端会调用：
-
-- `POST /api/orders`
-- `POST /api/payments/create`
-
-随后跳转到 Stripe Hosted Checkout。
-
-#### 4. 支付成功后
-
-- Stripe Webhook 推进订单到 `paid`
-- 前端返回站点后再调用 `/api/payments/confirm` 做一次对账补偿
-
-这意味着支付推进有两层保障：
-
-- **主路径：Webhook**
-- **补偿路径：前端返回后的确认接口**
-
----
-
-### 13. 搜索、商品与 SEO 路由
-
-#### 全站搜索 API
-
-请求示例：
-
-```bash
-curl 'http://localhost:3000/api/search?q=arc&limit=5'
+```env
+STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 
-返回内容包含：
+### 3. 使用 Stripe 测试卡支付
 
-- `products`: 匹配到的商品
-- `games`: 匹配到的游戏
+测试支付完成后：
 
-这个接口已经可用，后续只需要把 Header 搜索框接入即可。
+- Stripe webhook 会推进订单到 `paid`
+- 站点返回页会调用 `/api/payments/confirm`
+- 后台 `/admin` 可以继续派单和推进状态
 
-#### 商品详情 API
+---
 
-请求示例：
+## 14. 初始化管理员账号
 
 ```bash
-curl 'http://localhost:3000/api/products/arc-raiders/1'
+npm run bootstrap:admin -- --email admin@example.com --password StrongPassword123 --username admin
 ```
 
-返回内容包含：
+脚本会：
 
-- `product`: 当前商品
-- `related`: 同游戏、同类目的相关商品
-
-这个接口已经把后续商品详情页的后端能力补好了。
-
-#### SEO 路由
-
-当前已生成：
-
-- `/robots.txt`
-- `/sitemap.xml`
-
-`sitemap.xml` 当前会输出：
-
-- 首页
-- 推广页
-- 所有激活游戏的分类页
+- 创建管理员账号
+- 如果邮箱已存在则直接提升为 `admin`
+- 运行前必须先配置 `DATABASE_URL`
 
 ---
 
-### 14. 安全能力
+## 15. 商品管理使用方式
 
-当前后端和全局请求链路已经补充了以下安全措施：
+### 后台商品管理
 
-- JWT 鉴权
-- bcrypt 密码哈希
-- 关键写接口限流
-- 输入清洗和基础校验
-- Origin / Referer 校验，用于拦截明显的跨站写请求
-- 统一安全响应头
+管理员进入 `/admin`，切换到 `Product Management` 标签后可以：
 
-安全响应头由 [proxy.js](/Users/mac/Documents/project/web/proxy.js) 注入，当前包括：
+- 新建商品
+- 编辑现有商品
+- 删除未被订单引用的商品
+- 按关键字刷新商品列表
 
-- `X-Frame-Options: DENY`
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy`
-- `Cross-Origin-Opener-Policy`
-- `Cross-Origin-Resource-Policy`
-- 在 HTTPS 下追加 `Strict-Transport-Security`
+### 前台商品联动
+
+后台创建或编辑的商品会直接影响：
+
+- 目录页 `/[game]/[category]`
+- Header 搜索结果
+- 搜索页 `/search`
+- 商品详情页 `/[game]/product/[id]`
+- `sitemap.xml`
+
+这意味着商品数据不再只来自静态 JSON，而是以数据库为准。
 
 ---
 
-### 15. 自动化测试与校验
+## 16. 搜索使用方式
 
-#### 运行单元/集成测试
+### Header 搜索
+
+- 输入 2 个以上字符后会拉取 `/api/search`
+- 结果同时显示游戏和商品
+- 点击结果会进入游戏目录或商品详情
+- 提交搜索会进入 `/search?q=...`
+
+### 搜索页
+
+`/search?q=arc`
+
+页面会展示：
+
+- 游戏匹配结果
+- 商品匹配结果
+- 商品快速入口和卡片
+
+---
+
+## 17. 测试与校验
+
+### 运行测试
 
 ```bash
 npm test
 ```
 
-当前测试覆盖了：
+### 运行 lint
 
-- 输入校验工具
-- 订单状态机权限与可流转状态
-- 下单 API
-- Stripe 支付会话创建
+```bash
+npm run lint
+```
+
+### 运行生产构建
+
+```bash
+npm run build
+```
+
+### 运行完整校验
+
+```bash
+npm run verify
+```
+
+当前自动化测试覆盖：
+
+- 文本清洗与输入校验
+- 购物车商品入参清洗
+- 订单状态机权限与流转
+- 下单和 Stripe 支付会话创建
 - 支付确认
 - 派单
-- 订单状态推进
-- Stripe 退款联动
+- 退款
 - 搜索 API
 - 商品详情 API
-- 跨站请求拦截
+- 跨站写请求拦截
+- 管理员商品新增 / 编辑 / 删除
 
-#### 运行完整校验
+说明：
 
-```bash
-npm run verify
-```
-
-会依次执行：
-
-1. `npm run lint`
-2. `npm run test`
-3. `npm run build`
-
-如果你准备提交、部署或继续开发，优先跑 `verify`。
+- 测试默认使用 `pg-mem`，不需要你本地先启动真实 PostgreSQL
+- 开发和生产环境使用真实 PostgreSQL
 
 ---
 
-### 16. 常用命令
+## 18. 生产部署注意事项
 
-```bash
-npm run dev              # 启动开发环境
-npm run lint             # 运行 ESLint
-npm run test             # 运行 Vitest
-npm run build            # 构建生产版本
-npm run verify           # lint + test + build
-npm run bootstrap:admin -- --email admin@example.com --password StrongPassword123 --username admin
-```
+- 必须配置 `JWT_SECRET`
+- 必须配置真实 Stripe 密钥和 webhook secret
+- 必须配置可连接的 PostgreSQL，并做好备份、连接池和权限控制
+- 必须在 HTTPS 下部署
+- 如果后续要接 PayPal、OAuth、邮件，需要分别补充对应环境变量与回调地址
 
 ---
 
-### 17. 当前代码结构
+## 19. 当前仍然未做的部分
 
-```text
-web/
-├── app/
-│   ├── [game]/[category]/          # 商品目录页
-│   ├── admin/                      # 运营后台页面
-│   ├── affiliate/                  # 推广页
-│   ├── cart/                       # 购物车
-│   ├── checkout/                   # 结账页 + 客户端支付流程
-│   ├── dashboard/                  # 用户中心
-│   ├── robots.js                   # robots.txt
-│   ├── sitemap.js                  # sitemap.xml
-│   └── api/                        # 后端 API 路由
-│       ├── auth/
-│       ├── orders/
-│       ├── payments/
-│       ├── admin/
-│       ├── affiliate/
-│       ├── search/
-│       └── products/
-├── components/                     # 公共 UI 组件
-├── data/                           # 商品、翻译、货币、SQLite 数据文件
-├── lib/
-│   ├── auth.js                     # JWT / auth guard
-│   ├── db.js                       # SQLite 初始化 + 迁移
-│   ├── env.js                      # 环境变量读取
-│   ├── orders.js                   # 订单状态机 / 派单 / 日志
-│   ├── payments/stripe.js          # Stripe 客户端封装
-│   ├── rate-limit.js               # 基础限流
-│   ├── request-security.js         # Origin / Referer 校验
-│   ├── validation.js               # 输入校验 / 清洗
-│   └── useHydrated.js              # 客户端 hydration 工具
-├── proxy.js                        # Next.js 全局安全响应头
-├── scripts/
-│   └── bootstrap-admin.mjs         # 初始化管理员脚本
-├── store/                          # Zustand 状态管理
-├── tests/                          # Vitest 自动化测试
-├── .env.example
-├── package.json
-└── README.md
-```
+这部分不是仓库遗漏，而是需要继续扩展或依赖外部服务：
+
+- PayPal 支付
+- Steam / Discord / Google OAuth
+- 邮件验证码与找回密码邮件
+- CMS 内容管理后台
+- 实时汇率同步
+- Slack / Discord / 企业微信派单通知
+- 设备指纹 / IP 风控 / 反欺诈评分
+- 聊天系统 / 交付截图上传
 
 ---
 
-### 18. 已知未完成项 / 后续建议
+## 20. 本轮补充完成的重点
 
-#### 高优先级
+这轮新增和完善的高价值内容包括：
 
-- PayPal 接入
-- 邮件系统（注册验证、订单通知、找回密码）
-- 后台商品管理
-- 商品详情页 UI
-- 实时通知（Discord / Slack / 企业微信）
-- 更强的防刷和风控
-
-#### 中优先级
-
-- 动态汇率同步任务
-- Header 搜索结果面板接入
-- 多游戏商品数据扩充
-- 更完整的运营日志和内部备注
-- 用户端订单详情页 UI 优化
-
-#### SEO 方向
-
-- `generateMetadata`
-- JSON-LD
-- Open Graph / Twitter Cards
-- 内容系统 / 攻略系统
+- 数据库驱动的目录页，不再只依赖本地 JSON 展示
+- 商品详情页
+- Header 搜索结果面板
+- 独立搜索页
+- 商品 `external_id` 支持与历史数据回填
+- 管理员商品管理 API
+- 管理后台商品管理页
+- 页面级 metadata 与商品 JSON-LD
+- `sitemap.xml` 自动收录商品页
+- PostgreSQL 数据层替换与异步查询重构
+- 新增管理员商品管理测试
 
 ---
 
-## English
+## 21. 已验证结果
 
-### What this repo is
+本次代码更新后，已实际执行并通过：
 
-This is a backend-strengthened IGGM-style marketplace prototype built with Next.js 16. It supports:
+- `npm run lint`
+- `npm test`
+- `npm run build`
+- `npm run verify`
 
-- catalog browsing
-- cart and checkout
-- JWT auth
-- Stripe Checkout
-- Stripe webhook payment confirmation
-- order assignment and staff workflow
-- role-based operations (`user`, `worker`, `support`, `admin`)
-- SQLite persistence with auto-migration
-- global search API
-- product detail API
-- dynamic robots and sitemap routes
-- security headers via `proxy`
-- automated tests with Vitest
+构建时如果本地没有配置 `JWT_SECRET`，会看到警告：
 
-### What is already real
+`JWT_SECRET is not configured. Using an insecure fallback secret`
 
-- real Stripe session creation
-- real Stripe webhook signature verification
-- real payment confirmation reconciliation
-- real Stripe refund call when an order is moved to `refunded`
-- restricted order state machine
-- staff assignment flow
-- order audit log table
-- cross-site write-request checks
-- global search and product-detail APIs
+这是为了便于本地构建保留的开发兜底。
 
-### What is still missing
-
-- PayPal
-- email notifications / password reset
-- product detail page UI
-- search UI integration
-- SEO engineering work
-- multi-game product data beyond ARC Raiders
-- fraud tooling / live chat / notifications
-
-### Quick start
-
-```bash
-npm install
-cp .env.example .env.local
-npm run bootstrap:admin -- --email admin@example.com --password StrongPassword123 --username admin
-npm run dev
-```
-
-### Verify everything
-
-```bash
-npm run verify
-```
-
-### Local Stripe webhook forwarding
-
-```bash
-stripe listen --forward-to localhost:3000/api/payments/webhook
-```
-
-### Core env vars
-
-```env
-JWT_SECRET=replace-with-a-long-random-secret
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-```
+部署环境必须配置真实值，不能使用 fallback。

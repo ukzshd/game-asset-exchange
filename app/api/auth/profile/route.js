@@ -13,11 +13,11 @@ export async function PUT(request) {
         const embarkId = cleanText(body?.embark_id, 64);
         const phone = cleanText(body?.phone, 32);
 
-        const db = getDb();
-        db.prepare('UPDATE users SET username = ?, embark_id = ?, phone = ? WHERE id = ?')
+        const db = await getDb();
+        await db.prepare('UPDATE users SET username = ?, embark_id = ?, phone = ? WHERE id = ?')
             .run(username, embarkId, phone, user.id);
 
-        const updated = db.prepare(`
+        const updated = await db.prepare(`
             SELECT id, email, username, embark_id, phone, role, referral_code, referred_by, created_at
             FROM users WHERE id = ?
         `).get(user.id);

@@ -122,6 +122,14 @@
     min-height: 2.6em;
 }
 
+.nameLink {
+    color: inherit;
+}
+
+.nameLink:hover .name {
+    color: var(--accent-cyan);
+}
+
 /* Quantity */
 .qtyRow {
     display: flex;

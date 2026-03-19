@@ -19,15 +19,15 @@ export async function PUT(request) {
             return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
         }
 
-        const db = getDb();
-        const fullUser = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id);
+        const db = await getDb();
+        const fullUser = await db.prepare('SELECT password_hash FROM users WHERE id = ?').get(user.id);
         const valid = await verifyPassword(currentPassword, fullUser.password_hash);
         if (!valid) {
             return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
         }
 
         const newHash = await hashPassword(newPassword);
-        db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+        await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
 
         return NextResponse.json({ message: 'Password updated successfully' });
     } catch (error) {

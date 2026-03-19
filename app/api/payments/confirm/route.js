@@ -20,8 +20,8 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Order ID and session ID are required' }, { status: 400 });
         }
 
-        const db = getDb();
-        const order = db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, user.id);
+        const db = await getDb();
+        const order = await db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, user.id);
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
@@ -33,8 +33,8 @@ export async function POST(request) {
         }
 
         if (session.payment_status === 'paid' && order.status === ORDER_STATUS.PENDING_PAYMENT) {
-            const tx = db.transaction(() => {
-                setOrderStatus(db, {
+            const tx = db.transaction(async () => {
+                await setOrderStatus(db, {
                     orderId: order.id,
                     currentStatus: order.status,
                     nextStatus: ORDER_STATUS.PAID,
@@ -43,17 +43,17 @@ export async function POST(request) {
                     paymentReference: session.payment_intent || session.id,
                     message: 'Payment confirmed via Stripe session reconciliation',
                 });
-                db.prepare(`
+                await db.prepare(`
                     UPDATE orders
                     SET payment_id = ?, payment_provider = 'stripe', payment_session_id = ?, payment_status = 'paid'
                     WHERE id = ?
                 `).run(session.payment_intent || session.id, session.id, order.id);
             });
-            tx();
+            await tx();
         }
 
-        const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
-        const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        const updated = await db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+        const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
 
         return NextResponse.json({
             order: { ...updated, items },

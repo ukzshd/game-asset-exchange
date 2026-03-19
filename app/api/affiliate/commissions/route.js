@@ -11,11 +11,11 @@ export async function GET(request) {
         const limit = parseInt(searchParams.get('limit') || '20');
         const offset = (page - 1) * limit;
 
-        const db = getDb();
+        const db = await getDb();
 
-        const total = db.prepare('SELECT COUNT(*) as c FROM affiliate_commissions WHERE referrer_id = ?').get(user.id).c;
+        const total = (await db.prepare('SELECT COUNT(*)::int as c FROM affiliate_commissions WHERE referrer_id = ?').get(user.id)).c;
 
-        const commissions = db.prepare(`
+        const commissions = await db.prepare(`
       SELECT ac.*, o.order_no
       FROM affiliate_commissions ac
       LEFT JOIN orders o ON ac.order_id = o.id

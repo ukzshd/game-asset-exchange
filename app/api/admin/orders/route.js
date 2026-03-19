@@ -12,7 +12,7 @@ export async function GET(request) {
         const status = searchParams.get('status') || '';
         const offset = (page - 1) * limit;
 
-        const db = getDb();
+        const db = await getDb();
 
         const whereParts = [];
         const params = [];
@@ -26,9 +26,9 @@ export async function GET(request) {
         }
 
         const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
-        const total = db.prepare(`SELECT COUNT(*) as c FROM orders o ${where}`).get(...params).c;
+        const total = (await db.prepare(`SELECT COUNT(*)::int as c FROM orders o ${where}`).get(...params)).c;
 
-        const orders = db.prepare(`
+        const orders = await db.prepare(`
             SELECT
                 o.*, u.email as user_email, u.username,
                 assignee.username as assigned_username,
@@ -51,16 +51,16 @@ export async function GET(request) {
             ORDER BY l.created_at DESC
             LIMIT 10
         `);
-        const ordersWithDetails = orders.map((order) => ({
+        const ordersWithDetails = await Promise.all(orders.map(async (order) => ({
             ...order,
-            items: getItems.all(order.id),
-            logs: getLogs.all(order.id),
+            items: await getItems.all(order.id),
+            logs: await getLogs.all(order.id),
             allowedTransitions: getAllowedTransitions(staffUser, order),
-        }));
+        })));
 
         const staff = staffUser.role === 'worker'
             ? []
-            : db.prepare(`
+            : await db.prepare(`
                 SELECT id, username, role
                 FROM users
                 WHERE role IN ('support', 'worker')

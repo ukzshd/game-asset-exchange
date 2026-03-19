@@ -28,8 +28,8 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Only Stripe is enabled for real payments right now' }, { status: 400 });
         }
 
-        const db = getDb();
-        const order = db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, user.id);
+        const db = await getDb();
+        const order = await db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, user.id);
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
@@ -37,7 +37,7 @@ export async function POST(request) {
             return NextResponse.json({ error: `Order cannot be paid in status ${order.status}` }, { status: 400 });
         }
 
-        const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
         if (items.length === 0) {
             return NextResponse.json({ error: 'Order has no items' }, { status: 400 });
         }
@@ -66,17 +66,17 @@ export async function POST(request) {
             },
         });
 
-        db.prepare(`
+        await db.prepare(`
             UPDATE orders
             SET payment_provider = 'stripe',
                 payment_method = 'stripe',
                 payment_status = 'pending',
                 payment_session_id = ?,
-                updated_at = datetime('now')
+                updated_at = NOW()
             WHERE id = ?
         `).run(session.id, order.id);
 
-        createOrderLog(db, {
+        await createOrderLog(db, {
             orderId: order.id,
             actorUserId: user.id,
             actorRole: user.role,

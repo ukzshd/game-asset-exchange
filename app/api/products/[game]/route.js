@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
         const hasMaxPrice = maxPriceRaw > 0;
         const offset = (page - 1) * limit;
 
-        const db = getDb();
+        const db = await getDb();
 
         let where = 'WHERE game_slug = ?';
         const queryParams = [game];
@@ -67,10 +67,10 @@ export async function GET(request, { params }) {
                 break;
         }
 
-        const countRow = db.prepare(`SELECT COUNT(*) as total FROM products ${where}`).get(...queryParams);
-        const products = db.prepare(`SELECT * FROM products ${where} ${orderBy} LIMIT ? OFFSET ?`).all(...queryParams, limit, offset);
-        const categories = db.prepare('SELECT DISTINCT category FROM products WHERE game_slug = ? ORDER BY category').all(game).map((row) => row.category);
-        const subCategories = db.prepare('SELECT DISTINCT sub_category FROM products WHERE game_slug = ? AND sub_category != "" ORDER BY sub_category').all(game).map((row) => row.sub_category);
+        const countRow = await db.prepare(`SELECT COUNT(*)::int as total FROM products ${where}`).get(...queryParams);
+        const products = await db.prepare(`SELECT * FROM products ${where} ${orderBy} LIMIT ? OFFSET ?`).all(...queryParams, limit, offset);
+        const categories = (await db.prepare('SELECT DISTINCT category FROM products WHERE game_slug = ? ORDER BY category').all(game)).map((row) => row.category);
+        const subCategories = (await db.prepare("SELECT DISTINCT sub_category FROM products WHERE game_slug = ? AND sub_category != '' ORDER BY sub_category").all(game)).map((row) => row.sub_category);
 
         return NextResponse.json({
             products,

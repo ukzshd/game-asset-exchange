@@ -33,6 +33,17 @@ describe('read-only API routes and origin protection', () => {
         expect(Array.isArray(payload.related)).toBe(true);
     });
 
+    it('resolves product detail by external id as well as numeric id', async () => {
+        const { GET } = await import('@/app/api/products/[game]/[id]/route');
+        const response = await GET(new Request('http://localhost:3000/api/products/arc-raiders/arc-wmm-1-5'), {
+            params: Promise.resolve({ game: 'arc-raiders', id: 'arc-wmm-1-5' }),
+        });
+
+        expect(response.status).toBe(200);
+        const payload = await response.json();
+        expect(payload.product.external_id).toBe('arc-wmm-1-5');
+    });
+
     it('rejects cross-site register attempts when origin is untrusted', async () => {
         const { POST } = await import('@/app/api/auth/register/route');
         const response = await POST(new Request('http://localhost:3000/api/auth/register', {

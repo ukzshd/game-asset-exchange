@@ -1,6 +1,5 @@
-import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
-import path from 'path';
+import { Pool } from 'pg';
 
 function parseArgs(argv) {
   const args = {};
@@ -15,50 +14,57 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const dbPath = process.env.IGGM_DB_PATH || process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'iggm.db');
 const email = (args.email || '').trim().toLowerCase();
 const username = (args.username || 'admin').trim();
 const password = args.password || '';
+const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
 
 if (!email || !password) {
   console.error('Usage: npm run bootstrap:admin -- --email admin@example.com --password StrongPassword123 --username admin');
   process.exit(1);
 }
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    username TEXT NOT NULL,
-    embark_id TEXT DEFAULT '',
-    phone TEXT DEFAULT '',
-    role TEXT DEFAULT 'user',
-    referral_code TEXT UNIQUE,
-    referred_by TEXT DEFAULT '',
-    is_active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-`);
-
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-const passwordHash = await bcrypt.hash(password, 12);
-const referralCode = `ADMIN${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-
-if (existing) {
-  db.prepare('UPDATE users SET username = ?, password_hash = ?, role = ?, is_active = 1 WHERE id = ?')
-    .run(username, passwordHash, 'admin', existing.id);
-  console.log(`Updated existing user ${email} to admin.`);
-} else {
-  db.prepare(`
-    INSERT INTO users (email, password_hash, username, role, referral_code, is_active)
-    VALUES (?, ?, ?, 'admin', ?, 1)
-  `).run(email, passwordHash, username, referralCode);
-  console.log(`Created admin user ${email}.`);
+if (!databaseUrl) {
+  console.error('DATABASE_URL is required.');
+  process.exit(1);
 }
 
-db.close();
+const pool = new Pool({ connectionString: databaseUrl });
+
+try {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      username TEXT NOT NULL,
+      embark_id TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      role TEXT DEFAULT 'user',
+      referral_code TEXT UNIQUE,
+      referred_by TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  const existing = (await pool.query('SELECT id FROM users WHERE email = $1', [email])).rows[0];
+  const passwordHash = await bcrypt.hash(password, 12);
+  const referralCode = `ADMIN${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+
+  if (existing) {
+    await pool.query(
+      'UPDATE users SET username = $1, password_hash = $2, role = $3, is_active = 1 WHERE id = $4',
+      [username, passwordHash, 'admin', existing.id]
+    );
+    console.log(`Updated existing user ${email} to admin.`);
+  } else {
+    await pool.query(`
+      INSERT INTO users (email, password_hash, username, role, referral_code, is_active)
+      VALUES ($1, $2, $3, 'admin', $4, 1)
+    `, [email, passwordHash, username, referralCode]);
+    console.log(`Created admin user ${email}.`);
+  }
+} finally {
+  await pool.end();
+}

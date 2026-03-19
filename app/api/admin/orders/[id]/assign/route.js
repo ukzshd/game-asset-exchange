@@ -22,8 +22,8 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'assigneeId is required' }, { status: 400 });
         }
 
-        const db = getDb();
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+        const db = await getDb();
+        const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
@@ -31,17 +31,17 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: `Order cannot be assigned while in status ${order.status}` }, { status: 400 });
         }
 
-        const assignee = db.prepare('SELECT id, username, role FROM users WHERE id = ? AND role IN (?, ?)').get(assigneeId, 'support', 'worker');
+        const assignee = await db.prepare('SELECT id, username, role FROM users WHERE id = ? AND role IN (?, ?)').get(assigneeId, 'support', 'worker');
         if (!assignee) {
             return NextResponse.json({ error: 'Assignee must be a support or worker user' }, { status: 400 });
         }
 
-        const tx = db.transaction(() => {
-            assignOrder(db, { order, assignee, actor, note });
+        const tx = db.transaction(async () => {
+            await assignOrder(db, { order, assignee, actor, note });
         });
-        tx();
+        await tx();
 
-        const updated = db.prepare(`
+        const updated = await db.prepare(`
             SELECT o.*, assignee.username AS assigned_username
             FROM orders o
             LEFT JOIN users assignee ON assignee.id = o.assigned_to

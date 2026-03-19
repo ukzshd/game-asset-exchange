@@ -35,12 +35,12 @@ export async function POST(request) {
             return NextResponse.json({ error: 'A valid delivery email is required' }, { status: 400 });
         }
 
-        const db = getDb();
+        const db = await getDb();
         let subtotal = 0;
         const validatedItems = [];
 
         for (const item of items) {
-            const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId);
+            const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId);
             if (!product) {
                 return NextResponse.json({ error: `Product not found: ${item.name || item.productId}` }, { status: 400 });
             }
@@ -54,7 +54,7 @@ export async function POST(request) {
 
         let discountAmount = 0;
         if (couponCode) {
-            const coupon = db.prepare('SELECT * FROM coupons WHERE code = ? AND active = 1').get(couponCode);
+            const coupon = await db.prepare('SELECT * FROM coupons WHERE code = ? AND active = 1').get(couponCode);
             if (coupon && (!coupon.expires_at || new Date(coupon.expires_at) > new Date())) {
                 discountAmount = subtotal * (coupon.discount_percent / 100);
             }
@@ -63,8 +63,8 @@ export async function POST(request) {
         const total = subtotal - discountAmount;
         const orderNo = generateOrderNo();
 
-        const createOrder = db.transaction(() => {
-            const result = db.prepare(`
+        const createOrder = db.transaction(async () => {
+            const result = await db.prepare(`
                 INSERT INTO orders (
                     order_no, user_id, total, currency, status, embark_id, character_name,
                     delivery_email, delivery_contact, delivery_platform, delivery_server,
@@ -96,21 +96,21 @@ export async function POST(request) {
                 'INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price) VALUES (?, ?, ?, ?, ?)'
             );
             for (const { product, quantity } of validatedItems) {
-                insertItem.run(orderId, product.id, product.name, quantity, product.price);
+                await insertItem.run(orderId, product.id, product.name, quantity, product.price);
             }
 
             if (user.referred_by) {
-                const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(user.referred_by);
+                const referrer = await db.prepare('SELECT id FROM users WHERE referral_code = ?').get(user.referred_by);
                 if (referrer) {
                     const commissionRate = 0.10;
                     const commissionAmount = total * commissionRate;
-                    db.prepare(
+                    await db.prepare(
                         'INSERT INTO affiliate_commissions (referrer_id, order_id, order_amount, commission_rate, commission_amount) VALUES (?, ?, ?, ?, ?)'
                     ).run(referrer.id, orderId, total, commissionRate, commissionAmount);
                 }
             }
 
-            createOrderLog(db, {
+            await createOrderLog(db, {
                 orderId,
                 actorUserId: user.id,
                 actorRole: user.role,
@@ -123,9 +123,9 @@ export async function POST(request) {
             return orderId;
         });
 
-        const orderId = createOrder();
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
-        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const orderId = await createOrder();
+        const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
 
         return NextResponse.json({ order: { ...order, items: orderItems } }, { status: 201 });
     } catch (error) {
@@ -143,9 +143,9 @@ export async function GET(request) {
         const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
         const offset = (page - 1) * limit;
 
-        const db = getDb();
-        const total = db.prepare('SELECT COUNT(*) as c FROM orders WHERE user_id = ?').get(user.id).c;
-        const orders = db.prepare(`
+        const db = await getDb();
+        const total = (await db.prepare('SELECT COUNT(*)::int as c FROM orders WHERE user_id = ?').get(user.id)).c;
+        const orders = await db.prepare(`
             SELECT o.*, assignee.username AS assigned_username
             FROM orders o
             LEFT JOIN users assignee ON assignee.id = o.assigned_to
@@ -155,10 +155,10 @@ export async function GET(request) {
         `).all(user.id, limit, offset);
 
         const getItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?');
-        const ordersWithItems = orders.map((order) => ({
+        const ordersWithItems = await Promise.all(orders.map(async (order) => ({
             ...order,
-            items: getItems.all(order.id),
-        }));
+            items: await getItems.all(order.id),
+        })));
 
         return NextResponse.json({
             orders: ordersWithItems,
