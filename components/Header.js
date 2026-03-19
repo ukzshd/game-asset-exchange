@@ -41,6 +41,7 @@ export default function Header() {
     useEffect(() => {
         initTranslations();
         initAuth();
+        useCurrencyStore.getState().syncRates();
     }, [initTranslations, initAuth]);
 
     useEffect(() => {

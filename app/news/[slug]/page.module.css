@@ -1,0 +1,64 @@
+.page {
+    padding: 28px 0 64px;
+}
+
+.breadcrumbs {
+    display: flex;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-bottom: 16px;
+}
+
+.article,
+.related {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+}
+
+.article h1 {
+    margin: 0 0 12px;
+    font-size: 2.2rem;
+}
+
+.badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.badges span {
+    font-size: var(--font-size-xs);
+    padding: 6px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(255,255,255,0.05);
+}
+
+.excerpt {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.8;
+    margin-bottom: 18px;
+}
+
+.content p {
+    color: var(--text-secondary);
+    line-height: 1.9;
+    margin: 0 0 16px;
+}
+
+.related {
+    margin-top: 24px;
+}
+
+.related h2 {
+    margin-top: 0;
+}
+
+.relatedList {
+    display: grid;
+    gap: 10px;
+}

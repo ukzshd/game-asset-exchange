@@ -33,6 +33,24 @@ describe('read-only API routes and origin protection', () => {
         expect(Array.isArray(payload.related)).toBe(true);
     });
 
+    it('returns published articles and detail payloads', async () => {
+        const { GET: listArticles } = await import('@/app/api/articles/route');
+        const { GET: articleDetail } = await import('@/app/api/articles/[slug]/route');
+
+        const listResponse = await listArticles(new Request('http://localhost:3000/api/articles?game=arc-raiders&limit=2'));
+        expect(listResponse.status).toBe(200);
+        const listPayload = await listResponse.json();
+        expect(listPayload.articles.length).toBeGreaterThan(0);
+
+        const slug = listPayload.articles[0].slug;
+        const detailResponse = await articleDetail(new Request(`http://localhost:3000/api/articles/${slug}`), {
+            params: Promise.resolve({ slug }),
+        });
+        expect(detailResponse.status).toBe(200);
+        const detailPayload = await detailResponse.json();
+        expect(detailPayload.article.slug).toBe(slug);
+    });
+
     it('resolves product detail by external id as well as numeric id', async () => {
         const { GET } = await import('@/app/api/products/[game]/[id]/route');
         const response = await GET(new Request('http://localhost:3000/api/products/arc-raiders/arc-wmm-1-5'), {

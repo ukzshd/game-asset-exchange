@@ -11,6 +11,23 @@ const useCurrencyStore = create(
             currencies: currencyData.currencies,
 
             setCurrency: (code) => set({ currency: code }),
+            syncRates: async () => {
+                try {
+                    const res = await fetch('/api/currency-rates');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (Array.isArray(data.rates) && data.rates.length > 0) {
+                        set({ currencies: data.rates.map((rate) => ({
+                            code: rate.code,
+                            symbol: rate.symbol,
+                            name: rate.name,
+                            rate: rate.rate,
+                        })) });
+                    }
+                } catch {
+                    // keep static fallback
+                }
+            },
 
             getCurrentCurrency: () => {
                 const state = get();

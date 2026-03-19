@@ -1,0 +1,71 @@
+.page {
+    padding: 28px 0 64px;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin: 0 0 8px;
+}
+
+.header p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    color: inherit;
+}
+
+.card:hover {
+    border-color: var(--accent-blue);
+}
+
+.badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.badges span {
+    font-size: var(--font-size-xs);
+    padding: 6px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(255,255,255,0.05);
+}
+
+.card h2 {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+}
+
+.card p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.meta {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+@media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

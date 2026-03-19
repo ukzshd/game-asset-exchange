@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { constructStripeWebhookEvent } from '@/lib/payments/stripe';
 import { ORDER_STATUS, setOrderStatus } from '@/lib/orders';
+import { sendOpsNotification } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,16 @@ export async function POST(request) {
                         `).run(session.payment_intent || session.id, session.id, orderId);
                     });
                     await tx();
+                    try {
+                        await sendOpsNotification({
+                            event: 'order.paid',
+                            orderId,
+                            orderNo: order.order_no,
+                            paymentReference: session.payment_intent || session.id,
+                        });
+                    } catch (notifyError) {
+                        console.warn('Ops notification failed:', notifyError);
+                    }
                 }
             }
         }

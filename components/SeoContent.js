@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import styles from './SeoContent.module.css';
 
 export default function SeoContent({ gameSlug, gameName, couponCode, couponDiscount }) {
     const [openFaq, setOpenFaq] = useState(null);
+    const [articles, setArticles] = useState([]);
 
     const faqs = [
         {
@@ -47,6 +49,31 @@ export default function SeoContent({ gameSlug, gameName, couponCode, couponDisco
             url: "https://www.trustpilot.com/reviews/6981235d0e8a135ffa839f93"
         }
     ];
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadArticles() {
+            try {
+                const response = await fetch(`/api/articles?game=${encodeURIComponent(gameSlug)}&limit=2`);
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!cancelled) {
+                    setArticles(payload.articles?.slice(0, 2) || []);
+                }
+            } catch {
+                if (!cancelled) setArticles([]);
+            }
+        }
+
+        if (gameSlug) {
+            loadArticles();
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [gameSlug]);
 
     return (
         <div className={styles.seoContent}>
@@ -129,24 +156,38 @@ export default function SeoContent({ gameSlug, gameName, couponCode, couponDisco
             <section className={styles.section}>
                 <h2 className={styles.sectionTitle}>{gameName} News</h2>
                 <div className={styles.articlesGrid}>
-                    <div className={styles.articleCard}>
-                        <div className={styles.articleImage}>
-                            <div className={styles.articleImagePlaceholder}>📰</div>
-                        </div>
-                        <div className={styles.articleContent}>
-                            <h4>ARC Raiders Season 3 Trials Guide | Loot Bird&apos;s Nests</h4>
-                            <p>Have you completed this week&apos;s trials? The recent trials haven&apos;t been too difficult; usually, a little extra time is enough to achieve three stars and win all the rewards...</p>
-                        </div>
-                    </div>
-                    <div className={styles.articleCard}>
-                        <div className={styles.articleImage}>
-                            <div className={styles.articleImagePlaceholder}>📰</div>
-                        </div>
-                        <div className={styles.articleContent}>
-                            <h4>ARC Raiders vs Marathon Mechanics and Combat</h4>
-                            <p>The long-awaited Marathon has finally been released, drawing reactions ranging from eager anticipation to outright dismissal...</p>
-                        </div>
-                    </div>
+                    {articles.length > 0 ? articles.map((article) => (
+                        <Link key={article.id} href={`/news/${article.slug}`} className={styles.articleCard}>
+                            <div className={styles.articleImage}>
+                                <div className={styles.articleImagePlaceholder}>📰</div>
+                            </div>
+                            <div className={styles.articleContent}>
+                                <h4>{article.title}</h4>
+                                <p>{article.excerpt}</p>
+                            </div>
+                        </Link>
+                    )) : (
+                        <>
+                            <div className={styles.articleCard}>
+                                <div className={styles.articleImage}>
+                                    <div className={styles.articleImagePlaceholder}>📰</div>
+                                </div>
+                                <div className={styles.articleContent}>
+                                    <h4>ARC Raiders Season 3 Trials Guide | Loot Bird&apos;s Nests</h4>
+                                    <p>Have you completed this week&apos;s trials? The recent trials haven&apos;t been too difficult; usually, a little extra time is enough to achieve three stars and win all the rewards...</p>
+                                </div>
+                            </div>
+                            <div className={styles.articleCard}>
+                                <div className={styles.articleImage}>
+                                    <div className={styles.articleImagePlaceholder}>📰</div>
+                                </div>
+                                <div className={styles.articleContent}>
+                                    <h4>ARC Raiders vs Marathon Mechanics and Combat</h4>
+                                    <p>The long-awaited Marathon has finally been released, drawing reactions ranging from eager anticipation to outright dismissal...</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </section>
         </div>

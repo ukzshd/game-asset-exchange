@@ -29,6 +29,7 @@ export default function Footer() {
                         <Link href="/refund-policy">Refund Policy</Link>
                         <Link href="/aml-policy">AML Policy</Link>
                         <Link href="/coupon">Coupon Center</Link>
+                        <Link href="/news">News</Link>
                     </nav>
                 </div>
 

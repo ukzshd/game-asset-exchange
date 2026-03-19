@@ -5,6 +5,7 @@ import { assertRateLimit } from '@/lib/rate-limit';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { cleanText, cleanMultilineText, normalizeEmail, isValidEmail, sanitizeOrderItems } from '@/lib/validation';
 import { ORDER_STATUS, createOrderLog } from '@/lib/orders';
+import { evaluateRisk, recordRiskEvent } from '@/lib/risk';
 
 export async function POST(request) {
     try {
@@ -62,6 +63,12 @@ export async function POST(request) {
 
         const total = subtotal - discountAmount;
         const orderNo = generateOrderNo();
+        const risk = evaluateRisk({
+            total,
+            itemCount: validatedItems.reduce((sum, item) => sum + item.quantity, 0),
+            paymentMethod,
+            hasReferral: Boolean(user.referred_by),
+        });
 
         const createOrder = db.transaction(async () => {
             const result = await db.prepare(`
@@ -118,6 +125,20 @@ export async function POST(request) {
                 toStatus: ORDER_STATUS.PENDING_PAYMENT,
                 message: 'Order created and awaiting payment',
                 metadata: { paymentMethod, currency },
+            });
+
+            await recordRiskEvent({
+                request,
+                userId: user.id,
+                orderId,
+                eventType: 'order_created',
+                severity: risk.severity,
+                score: risk.score,
+                metadata: {
+                    reasons: risk.reasons,
+                    total,
+                    itemCount: validatedItems.length,
+                },
             });
 
             return orderId;
