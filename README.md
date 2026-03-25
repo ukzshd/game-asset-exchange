@@ -705,7 +705,9 @@ curl -X POST http://localhost:3000/api/admin/currency-rates/sync \
   - `product_skus.in_stock`
   - `products.stock_quantity`
   - `products.in_stock`
+- 创建支付会话时会先按 lot 预留库存，避免多个待支付订单抢同一批库存
 - 支付成功时会按 lot 顺序拆分扣减
+- 支付失败、支付过期、订单取消时会自动释放预留库存
 - 退款时会按订单的 lot 分配记录精确回补
 
 这意味着：

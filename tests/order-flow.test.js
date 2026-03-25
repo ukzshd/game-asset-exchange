@@ -89,6 +89,9 @@ describe('order and payment flow', () => {
         const { POST: createOrder } = await import('@/app/api/orders/route');
         const { POST: createPayment } = await import('@/app/api/payments/create/route');
         const { getDb } = await import('@/lib/db');
+        const db = await getDb();
+        const initialLot = await db.prepare('SELECT available_quantity, reserved_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC LIMIT 1').get(1);
+        const initialProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = ?').get(1);
 
         const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
             method: 'POST',
@@ -122,10 +125,23 @@ describe('order and payment flow', () => {
         const paymentPayload = await paymentResponse.json();
         expect(paymentPayload.checkoutUrl).toBe('https://checkout.stripe.test/session/cs_test_123');
 
-        const db = await getDb();
         const savedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderPayload.order.id);
         expect(savedOrder.payment_session_id).toBe('cs_test_123');
         expect(savedOrder.payment_provider).toBe('stripe');
+        const reservedLots = await db.prepare(`
+            SELECT lot_id, quantity
+            FROM order_inventory_reservations
+            WHERE order_id = ?
+            ORDER BY id ASC
+        `).all(orderPayload.order.id);
+        expect(reservedLots.map((entry) => entry.quantity)).toEqual([2]);
+
+        const reservedLot = await db.prepare('SELECT available_quantity, reserved_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC LIMIT 1').get(1);
+        expect(reservedLot.available_quantity).toBe(initialLot.available_quantity);
+        expect(reservedLot.reserved_quantity).toBe(2);
+
+        const reservedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = ?').get(1);
+        expect(reservedProduct.stock_quantity).toBe(initialProduct.stock_quantity - 2);
 
         const logs = await db.prepare('SELECT event_type FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderPayload.order.id);
         expect(logs.map((entry) => entry.event_type)).toEqual(['created', 'payment_session_created']);
@@ -218,6 +234,9 @@ describe('order and payment flow', () => {
 
         const stockedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = 1').get();
         expect(stockedProduct.stock_quantity).toBe(998);
+        const paidLot = await db.prepare('SELECT available_quantity, reserved_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC LIMIT 1').get(1);
+        expect(paidLot.available_quantity).toBe(998);
+        expect(paidLot.reserved_quantity).toBe(0);
 
         const logs = await db.prepare('SELECT event_type, to_status FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderId);
         expect(logs.map((entry) => `${entry.event_type}:${entry.to_status || ''}`)).toContain('assigned:assigned');
@@ -403,5 +422,69 @@ describe('order and payment flow', () => {
 
         const remainingAllocations = await db.prepare('SELECT COUNT(*)::int AS c FROM order_inventory_allocations WHERE order_id = ?').get(order.id);
         expect(remainingAllocations.c).toBe(0);
+    });
+
+    it('releases reserved inventory when Stripe checkout expires or fails', async () => {
+        const { token } = await createUser({ email: 'reservefail@example.com', username: 'reservefail' });
+        const { POST: createOrder } = await import('@/app/api/orders/route');
+        const { POST: createPayment } = await import('@/app/api/payments/create/route');
+        const { POST: stripeWebhook } = await import('@/app/api/payments/webhook/route');
+        const { getDb } = await import('@/lib/db');
+        const stripeLib = await import('@/lib/payments/stripe');
+        const db = await getDb();
+        const initialLot = await db.prepare('SELECT available_quantity, reserved_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC LIMIT 1').get(1);
+        const initialProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = ?').get(1);
+
+        const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(token),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 3, name: 'Bundle' }],
+                embarkId: 'embark#reserve',
+                characterName: 'ReserveFail',
+                email: 'reservefail@example.com',
+                paymentMethod: 'stripe',
+            }),
+        }));
+        const { order } = await orderResponse.json();
+
+        const paymentResponse = await createPayment(new Request('http://localhost:3000/api/payments/create', {
+            method: 'POST',
+            headers: authHeaders(token),
+            body: JSON.stringify({ orderId: order.id, paymentMethod: 'stripe' }),
+        }));
+        expect(paymentResponse.status).toBe(200);
+
+        stripeLib.constructStripeWebhookEvent.mockReturnValue({
+            type: 'checkout.session.expired',
+            data: {
+                object: {
+                    id: 'cs_test_123',
+                    payment_intent: 'pi_test_123',
+                    metadata: { order_id: String(order.id) },
+                },
+            },
+        });
+
+        const webhookResponse = await stripeWebhook(new Request('http://localhost:3000/api/payments/webhook', {
+            method: 'POST',
+            headers: { 'stripe-signature': 'sig_test' },
+            body: '{}',
+        }));
+        expect(webhookResponse.status).toBe(200);
+
+        const updatedOrder = await db.prepare('SELECT status, payment_status FROM orders WHERE id = ?').get(order.id);
+        expect(updatedOrder.status).toBe('payment_failed');
+        expect(updatedOrder.payment_status).toBe('failed');
+
+        const lot = await db.prepare('SELECT available_quantity, reserved_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC LIMIT 1').get(1);
+        expect(lot.available_quantity).toBe(initialLot.available_quantity);
+        expect(lot.reserved_quantity).toBe(0);
+
+        const reservationCount = await db.prepare('SELECT COUNT(*)::int AS c FROM order_inventory_reservations WHERE order_id = ?').get(order.id);
+        expect(reservationCount.c).toBe(0);
+
+        const product = await db.prepare('SELECT stock_quantity FROM products WHERE id = ?').get(1);
+        expect(product.stock_quantity).toBe(initialProduct.stock_quantity);
     });
 });

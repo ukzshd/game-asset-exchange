@@ -6,6 +6,7 @@ import { assertRateLimit } from '@/lib/rate-limit';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { cleanText } from '@/lib/validation';
 import { ORDER_STATUS, createOrderLog } from '@/lib/orders';
+import { reserveInventoryForOrder, releaseReservedInventoryForOrder } from '@/lib/inventory';
 import { getStripeClient } from '@/lib/payments/stripe';
 import { createPayPalOrder } from '@/lib/payments/paypal';
 
@@ -50,49 +51,69 @@ export async function POST(request) {
         let paymentStatus = 'pending';
         let eventMessage = '';
         let eventMetadata = {};
+        let reservedInventory = false;
 
-        if (paymentMethod === 'stripe') {
-            const stripe = getStripeClient();
-            const session = await stripe.checkout.sessions.create({
-                mode: 'payment',
-                customer_email: order.delivery_email || user.email,
-                success_url: `${appUrl}/checkout?orderId=${order.id}&payment=success&provider=stripe&session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${appUrl}/checkout?orderId=${order.id}&payment=cancelled&provider=stripe`,
-                line_items: items.map((item) => ({
-                    quantity: item.quantity,
-                    price_data: {
-                        currency: (order.currency || 'USD').toLowerCase(),
-                        unit_amount: Math.round(item.unit_price * 100),
-                        product_data: {
-                            name: item.product_name,
-                        },
-                    },
-                })),
-                metadata: {
-                    order_id: String(order.id),
-                    order_no: order.order_no,
-                    user_id: String(user.id),
-                },
+        try {
+            const reserveInventory = db.transaction(async () => {
+                return reserveInventoryForOrder(db, order.id);
             });
+            reservedInventory = Boolean(await reserveInventory());
 
-            paymentId = session.payment_intent || session.id;
-            checkoutUrl = session.url;
-            sessionId = session.id;
-            paymentStatus = session.payment_status || 'unpaid';
-            eventMessage = 'Stripe Checkout session created';
-            eventMetadata = { sessionId: session.id };
-        } else {
-            const paypalOrder = await createPayPalOrder({ order, items, user, appUrl });
-            paymentId = paypalOrder.id;
-            sessionId = paypalOrder.id;
-            checkoutUrl = paypalOrder.links?.find((link) => link.rel === 'approve')?.href || '';
-            paymentStatus = paypalOrder.status || 'CREATED';
-            eventMessage = 'PayPal order created';
-            eventMetadata = { paypalOrderId: paypalOrder.id };
+            if (paymentMethod === 'stripe') {
+                const stripe = getStripeClient();
+                const session = await stripe.checkout.sessions.create({
+                    mode: 'payment',
+                    customer_email: order.delivery_email || user.email,
+                    success_url: `${appUrl}/checkout?orderId=${order.id}&payment=success&provider=stripe&session_id={CHECKOUT_SESSION_ID}`,
+                    cancel_url: `${appUrl}/checkout?orderId=${order.id}&payment=cancelled&provider=stripe`,
+                    line_items: items.map((item) => ({
+                        quantity: item.quantity,
+                        price_data: {
+                            currency: (order.currency || 'USD').toLowerCase(),
+                            unit_amount: Math.round(item.unit_price * 100),
+                            product_data: {
+                                name: item.product_name,
+                            },
+                        },
+                    })),
+                    metadata: {
+                        order_id: String(order.id),
+                        order_no: order.order_no,
+                        user_id: String(user.id),
+                    },
+                });
 
-            if (!checkoutUrl) {
-                throw new Error('Missing PayPal approval URL');
+                paymentId = session.payment_intent || session.id;
+                checkoutUrl = session.url;
+                sessionId = session.id;
+                paymentStatus = session.payment_status || 'unpaid';
+                eventMessage = 'Stripe Checkout session created';
+                eventMetadata = { sessionId: session.id };
+            } else {
+                const paypalOrder = await createPayPalOrder({ order, items, user, appUrl });
+                paymentId = paypalOrder.id;
+                sessionId = paypalOrder.id;
+                checkoutUrl = paypalOrder.links?.find((link) => link.rel === 'approve')?.href || '';
+                paymentStatus = paypalOrder.status || 'CREATED';
+                eventMessage = 'PayPal order created';
+                eventMetadata = { paypalOrderId: paypalOrder.id };
+
+                if (!checkoutUrl) {
+                    throw new Error('Missing PayPal approval URL');
+                }
             }
+        } catch (error) {
+            if (reservedInventory) {
+                try {
+                    const releaseReservation = db.transaction(async () => {
+                        await releaseReservedInventoryForOrder(db, order.id);
+                    });
+                    await releaseReservation();
+                } catch (releaseError) {
+                    console.error('Failed to release inventory reservation:', releaseError);
+                }
+            }
+            throw error;
         }
 
         await db.prepare(`
