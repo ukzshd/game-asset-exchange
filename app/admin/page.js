@@ -14,11 +14,19 @@ const EMPTY_PRODUCT = {
     gameSlug: 'arc-raiders',
     category: 'Misc',
     subCategory: '',
+    platform: '',
+    serverRegion: '',
+    rarity: '',
     name: '',
     description: '',
+    deliveryNote: '',
+    packageLabel: '',
+    packageSize: '1',
+    packageUnit: 'bundle',
     price: '',
     originalPrice: '',
     discount: '0',
+    stockQuantity: '999',
     image: '',
     inStock: true,
 };
@@ -272,11 +280,19 @@ export default function AdminPage() {
             gameSlug: product.game_slug,
             category: product.category,
             subCategory: product.sub_category || '',
+            platform: product.platform || '',
+            serverRegion: product.server_region || '',
+            rarity: product.rarity || '',
             name: product.name,
             description: product.description || '',
+            deliveryNote: product.delivery_note || '',
+            packageLabel: product.package_label || '',
+            packageSize: String(product.package_size || 1),
+            packageUnit: product.package_unit || 'bundle',
             price: String(product.price || ''),
             originalPrice: String(product.original_price || ''),
             discount: String(product.discount || 0),
+            stockQuantity: String(product.stock_quantity ?? 999),
             image: product.image || '',
             inStock: Boolean(product.in_stock),
         });
@@ -652,6 +668,18 @@ export default function AdminPage() {
                                     <span>Sub Category</span>
                                     <input className={styles.textInput} value={productForm.subCategory} onChange={(e) => setProductForm((prev) => ({ ...prev, subCategory: e.target.value }))} />
                                 </label>
+                                <label className={styles.field}>
+                                    <span>Platform</span>
+                                    <input className={styles.textInput} value={productForm.platform} onChange={(e) => setProductForm((prev) => ({ ...prev, platform: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Server Region</span>
+                                    <input className={styles.textInput} value={productForm.serverRegion} onChange={(e) => setProductForm((prev) => ({ ...prev, serverRegion: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Rarity</span>
+                                    <input className={styles.textInput} value={productForm.rarity} onChange={(e) => setProductForm((prev) => ({ ...prev, rarity: e.target.value }))} />
+                                </label>
                                 <label className={`${styles.field} ${styles.fieldWide}`}>
                                     <span>Name</span>
                                     <input className={styles.textInput} value={productForm.name} onChange={(e) => setProductForm((prev) => ({ ...prev, name: e.target.value }))} />
@@ -659,6 +687,22 @@ export default function AdminPage() {
                                 <label className={`${styles.field} ${styles.fieldWide}`}>
                                     <span>Description</span>
                                     <textarea className={styles.textArea} value={productForm.description} onChange={(e) => setProductForm((prev) => ({ ...prev, description: e.target.value }))} />
+                                </label>
+                                <label className={`${styles.field} ${styles.fieldWide}`}>
+                                    <span>Delivery Note</span>
+                                    <textarea className={styles.textArea} value={productForm.deliveryNote} onChange={(e) => setProductForm((prev) => ({ ...prev, deliveryNote: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Package Label</span>
+                                    <input className={styles.textInput} value={productForm.packageLabel} onChange={(e) => setProductForm((prev) => ({ ...prev, packageLabel: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Package Size</span>
+                                    <input className={styles.textInput} type="number" min="1" step="1" value={productForm.packageSize} onChange={(e) => setProductForm((prev) => ({ ...prev, packageSize: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Package Unit</span>
+                                    <input className={styles.textInput} value={productForm.packageUnit} onChange={(e) => setProductForm((prev) => ({ ...prev, packageUnit: e.target.value }))} />
                                 </label>
                                 <label className={styles.field}>
                                     <span>Price</span>
@@ -671,6 +715,10 @@ export default function AdminPage() {
                                 <label className={styles.field}>
                                     <span>Discount %</span>
                                     <input className={styles.textInput} type="number" min="0" max="99" value={productForm.discount} onChange={(e) => setProductForm((prev) => ({ ...prev, discount: e.target.value }))} />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Stock Qty</span>
+                                    <input className={styles.textInput} type="number" min="0" step="1" value={productForm.stockQuantity} onChange={(e) => setProductForm((prev) => ({ ...prev, stockQuantity: e.target.value }))} />
                                 </label>
                                 <label className={styles.field}>
                                     <span>Image</span>
@@ -713,6 +761,7 @@ export default function AdminPage() {
                                                 <th>Game</th>
                                                 <th>Name</th>
                                                 <th>Category</th>
+                                                <th>Package</th>
                                                 <th>Price</th>
                                                 <th>Stock</th>
                                                 <th>Actions</th>
@@ -725,10 +774,11 @@ export default function AdminPage() {
                                                     <td>{product.game_slug}</td>
                                                     <td className={styles.customerName}>{product.name}</td>
                                                     <td>{product.category}{product.sub_category ? ` / ${product.sub_category}` : ''}</td>
+                                                    <td>{product.package_label || `${product.package_size || 1} ${product.package_unit || 'bundle'}`}</td>
                                                     <td className={styles.amount}>${Number(product.price).toFixed(2)}</td>
                                                     <td>
                                                         <span className={`${styles.statusBadge} ${product.in_stock ? styles.status_completed : styles.status_refunded}`}>
-                                                            {product.in_stock ? 'in stock' : 'out'}
+                                                            {product.in_stock ? `${product.stock_quantity ?? 0} in stock` : 'out'}
                                                         </span>
                                                     </td>
                                                     <td>

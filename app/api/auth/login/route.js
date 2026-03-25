@@ -4,6 +4,7 @@ import { verifyPassword, generateToken } from '@/lib/auth';
 import { assertRateLimit } from '@/lib/rate-limit';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { normalizeEmail } from '@/lib/validation';
+import { verifyEmailCode } from '@/lib/email-verification';
 
 export async function POST(request) {
     try {
@@ -13,9 +14,10 @@ export async function POST(request) {
         const body = await request.json();
         const email = normalizeEmail(body?.email);
         const password = body?.password || '';
+        const verifyCode = String(body?.verifyCode || '').trim();
 
-        if (!email || !password) {
-            return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+        if (!email || (!password && !verifyCode)) {
+            return NextResponse.json({ error: 'Email and password or verification code are required' }, { status: 400 });
         }
 
         const db = await getDb();
@@ -25,9 +27,11 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
         }
 
-        const valid = await verifyPassword(password, user.password_hash);
+        const valid = verifyCode
+            ? await verifyEmailCode({ email, purpose: 'login', code: verifyCode })
+            : await verifyPassword(password, user.password_hash);
         if (!valid) {
-            return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+            return NextResponse.json({ error: verifyCode ? 'Invalid or expired verification code' : 'Invalid email or password' }, { status: 401 });
         }
 
         const token = await generateToken(user);
@@ -37,6 +41,10 @@ export async function POST(request) {
                 id: user.id,
                 email: user.email,
                 username: user.username,
+                avatar_url: user.avatar_url,
+                google_id: user.google_id,
+                discord_id: user.discord_id,
+                steam_id: user.steam_id,
                 role: user.role,
                 embark_id: user.embark_id,
                 phone: user.phone,

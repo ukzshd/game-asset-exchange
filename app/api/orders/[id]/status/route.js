@@ -5,6 +5,7 @@ import { assertAllowedTransition, setOrderStatus } from '@/lib/orders';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { cleanMultilineText } from '@/lib/validation';
 import { createStripeRefund } from '@/lib/payments/stripe';
+import { createPayPalRefund } from '@/lib/payments/paypal';
 
 export async function PUT(request, { params }) {
     try {
@@ -35,6 +36,15 @@ export async function PUT(request, { params }) {
             } catch (refundError) {
                 console.error('Stripe refund failed:', refundError);
                 return NextResponse.json({ error: 'Stripe refund failed. Order status was not changed.' }, { status: 502 });
+            }
+        }
+        if (nextStatus === 'refunded' && order.payment_provider === 'paypal' && order.payment_id) {
+            try {
+                const refund = await createPayPalRefund(order.payment_id, { note });
+                refundReference = refund.id || '';
+            } catch (refundError) {
+                console.error('PayPal refund failed:', refundError);
+                return NextResponse.json({ error: 'PayPal refund failed. Order status was not changed.' }, { status: 502 });
             }
         }
 

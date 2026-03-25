@@ -7,6 +7,14 @@ const stripeState = vi.hoisted(() => ({
     refund: null,
 }));
 
+const paypalState = vi.hoisted(() => ({
+    createdOrder: null,
+    retrievedOrder: null,
+    capturedOrder: null,
+    refund: null,
+    webhookVerified: true,
+}));
+
 vi.mock('@/lib/payments/stripe', () => ({
     getStripeClient: () => ({
         checkout: {
@@ -18,6 +26,14 @@ vi.mock('@/lib/payments/stripe', () => ({
     }),
     constructStripeWebhookEvent: vi.fn(),
     createStripeRefund: vi.fn(async () => stripeState.refund),
+}));
+
+vi.mock('@/lib/payments/paypal', () => ({
+    createPayPalOrder: vi.fn(async () => paypalState.createdOrder),
+    getPayPalOrder: vi.fn(async () => paypalState.retrievedOrder),
+    capturePayPalOrder: vi.fn(async () => paypalState.capturedOrder),
+    createPayPalRefund: vi.fn(async () => paypalState.refund),
+    verifyPayPalWebhookEvent: vi.fn(async () => paypalState.webhookVerified),
 }));
 
 describe('order and payment flow', () => {
@@ -38,6 +54,29 @@ describe('order and payment flow', () => {
             metadata: { order_id: '1' },
         };
         stripeState.refund = { id: 're_test_123', status: 'succeeded' };
+        paypalState.createdOrder = {
+            id: 'PAYPAL-ORDER-123',
+            status: 'CREATED',
+            links: [{ rel: 'approve', href: 'https://paypal.test/checkout/PAYPAL-ORDER-123' }],
+        };
+        paypalState.retrievedOrder = {
+            id: 'PAYPAL-ORDER-123',
+            status: 'APPROVED',
+            purchase_units: [{ custom_id: '1', reference_id: '1' }],
+        };
+        paypalState.capturedOrder = {
+            id: 'PAYPAL-ORDER-123',
+            status: 'COMPLETED',
+            purchase_units: [{
+                reference_id: '1',
+                custom_id: '1',
+                payments: {
+                    captures: [{ id: 'CAPTURE-123', status: 'COMPLETED' }],
+                },
+            }],
+        };
+        paypalState.refund = { id: 'R-123', status: 'COMPLETED' };
+        paypalState.webhookVerified = true;
         temp = await setupIsolatedDb();
     });
 
@@ -177,6 +216,9 @@ describe('order and payment flow', () => {
         expect(finalOrder.delivered_at).toBeTruthy();
         expect(finalOrder.completed_at).toBeTruthy();
 
+        const stockedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = 1').get();
+        expect(stockedProduct.stock_quantity).toBe(998);
+
         const logs = await db.prepare('SELECT event_type, to_status FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderId);
         expect(logs.map((entry) => `${entry.event_type}:${entry.to_status || ''}`)).toContain('assigned:assigned');
         expect(logs.map((entry) => `${entry.event_type}:${entry.to_status || ''}`)).toContain('status_changed:completed');
@@ -224,5 +266,77 @@ describe('order and payment flow', () => {
         expect(updatedOrder.status).toBe('refunded');
         expect(updatedOrder.payment_status).toBe('refunded');
         expect(updatedOrder.payment_reference).toBe('re_test_123');
+
+        const refundedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = 1').get();
+        expect(refundedProduct.stock_quantity).toBeGreaterThanOrEqual(1000);
+    });
+
+    it('creates and confirms a PayPal order and supports PayPal refunds', async () => {
+        const { token: buyerToken } = await createUser({ email: 'paypalbuyer@example.com', username: 'paypalbuyer' });
+        const { token: adminToken } = await createUser({ email: 'paypaladmin@example.com', username: 'paypaladmin', role: 'admin' });
+        const { POST: createOrder } = await import('@/app/api/orders/route');
+        const { POST: createPayment } = await import('@/app/api/payments/create/route');
+        const { POST: confirmPayment } = await import('@/app/api/payments/confirm/route');
+        const { PUT: updateStatus } = await import('@/app/api/orders/[id]/status/route');
+        const { getDb } = await import('@/lib/db');
+
+        const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 1, name: 'Bundle' }],
+                embarkId: 'paypal#1111',
+                characterName: 'PayPalBuyer',
+                email: 'paypalbuyer@example.com',
+                paymentMethod: 'paypal',
+                currency: 'USD',
+            }),
+        }));
+        const { order } = await orderResponse.json();
+
+        paypalState.retrievedOrder.purchase_units[0].custom_id = String(order.id);
+        paypalState.retrievedOrder.purchase_units[0].reference_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].custom_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].reference_id = String(order.id);
+
+        const paymentResponse = await createPayment(new Request('http://localhost:3000/api/payments/create', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({ orderId: order.id, paymentMethod: 'paypal' }),
+        }));
+        expect(paymentResponse.status).toBe(200);
+        const paymentPayload = await paymentResponse.json();
+        expect(paymentPayload.checkoutUrl).toBe('https://paypal.test/checkout/PAYPAL-ORDER-123');
+        expect(paymentPayload.paymentMethod).toBe('paypal');
+
+        const confirmResponse = await confirmPayment(new Request('http://localhost:3000/api/payments/confirm', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({ orderId: order.id, sessionId: 'PAYPAL-ORDER-123', paymentMethod: 'paypal' }),
+        }));
+        expect(confirmResponse.status).toBe(200);
+        const confirmPayload = await confirmResponse.json();
+        expect(confirmPayload.order.status).toBe('paid');
+        expect(confirmPayload.payment.paymentMethod).toBe('paypal');
+        expect(confirmPayload.payment.paymentId).toBe('CAPTURE-123');
+
+        const db = await getDb();
+        const paidOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+        expect(paidOrder.payment_provider).toBe('paypal');
+        expect(paidOrder.payment_id).toBe('CAPTURE-123');
+
+        const refundResponse = await updateStatus(
+            new Request(`http://localhost:3000/api/orders/${order.id}/status`, {
+                method: 'PUT',
+                headers: authHeaders(adminToken),
+                body: JSON.stringify({ status: 'refunded', note: 'PayPal refund requested' }),
+            }),
+            { params: Promise.resolve({ id: String(order.id) }) }
+        );
+        expect(refundResponse.status).toBe(200);
+
+        const refundedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+        expect(refundedOrder.status).toBe('refunded');
+        expect(refundedOrder.payment_reference).toBe('R-123');
     });
 });

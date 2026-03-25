@@ -44,13 +44,13 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    login: async (email, password) => {
+    login: async (email, password, verifyCode = '') => {
         set({ loading: true, error: null });
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, verifyCode }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -67,13 +67,13 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    register: async (email, password, username) => {
+    register: async (email, password, username, verifyCode) => {
         set({ loading: true, error: null });
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, username }),
+                body: JSON.stringify({ email, password, username, verifyCode }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -82,6 +82,49 @@ const useAuthStore = create((set, get) => ({
             }
             set({ user: data.user, token: data.token, loading: false, error: null });
             localStorage.setItem('iggm_token', data.token);
+            localStorage.setItem('iggm_user', JSON.stringify(data.user));
+            return true;
+        } catch {
+            set({ loading: false, error: 'Network error' });
+            return false;
+        }
+    },
+
+    sendVerificationCode: async (email, purpose) => {
+        set({ loading: true, error: null });
+        try {
+            const res = await fetch('/api/auth/verification-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, purpose }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                set({ loading: false, error: data.error || 'Failed to send verification code' });
+                return { success: false, message: data.error || 'Failed to send verification code' };
+            }
+            set({ loading: false, error: null });
+            return { success: true, message: data.message || 'Verification code sent.' };
+        } catch {
+            set({ loading: false, error: 'Network error' });
+            return { success: false, message: 'Network error' };
+        }
+    },
+
+    completeOAuthLogin: async (token) => {
+        if (!token) return false;
+        set({ loading: true, error: null });
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                set({ loading: false, error: data.error || 'OAuth sign-in failed' });
+                return false;
+            }
+            set({ user: data.user, token, loading: false, error: null });
+            localStorage.setItem('iggm_token', token);
             localStorage.setItem('iggm_user', JSON.stringify(data.user));
             return true;
         } catch {

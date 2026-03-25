@@ -48,6 +48,9 @@ export async function POST(request) {
             if (!product.in_stock) {
                 return NextResponse.json({ error: `Product out of stock: ${product.name}` }, { status: 400 });
             }
+            if (Number.isFinite(product.stock_quantity) && product.stock_quantity >= 0 && item.quantity > product.stock_quantity) {
+                return NextResponse.json({ error: `Insufficient stock for ${product.name}` }, { status: 400 });
+            }
 
             subtotal += product.price * item.quantity;
             validatedItems.push({ product, quantity: item.quantity });

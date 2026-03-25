@@ -38,7 +38,10 @@ export default function CheckoutPage() {
         const paymentStatus = searchParams.get('payment');
         const orderId = searchParams.get('orderId');
         const sessionId = searchParams.get('session_id');
-        if (!mounted || !token || !orderId || paymentStatus !== 'success' || !sessionId) return;
+        const provider = searchParams.get('provider') || 'stripe';
+        const paypalToken = searchParams.get('token');
+        const effectiveSessionId = sessionId || paypalToken;
+        if (!mounted || !token || !orderId || paymentStatus !== 'success' || !effectiveSessionId) return;
 
         let cancelled = false;
         const confirmPayment = async () => {
@@ -50,7 +53,7 @@ export default function CheckoutPage() {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ orderId, sessionId }),
+                    body: JSON.stringify({ orderId, sessionId: effectiveSessionId, paymentMethod: provider }),
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Payment confirmation failed');
@@ -75,8 +78,9 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         const paymentStatus = searchParams.get('payment');
+        const provider = searchParams.get('provider') || 'payment';
         if (paymentStatus === 'cancelled') {
-            setStatusMessage('Stripe checkout was cancelled. You can retry payment below.');
+            setStatusMessage(`${provider === 'paypal' ? 'PayPal' : 'Stripe'} checkout was cancelled. You can retry payment below.`);
             setStep(2);
         }
     }, [searchParams]);
@@ -92,11 +96,6 @@ export default function CheckoutPage() {
             alert('Please log in to place an order.');
             return;
         }
-        if (paymentMethod !== 'stripe') {
-            alert('Only Stripe is available right now.');
-            return;
-        }
-
         setSubmitting(true);
         setStatusMessage('Creating your order...');
         try {
@@ -116,7 +115,7 @@ export default function CheckoutPage() {
             const orderData = await orderRes.json();
             if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
 
-            setStatusMessage('Redirecting to Stripe...');
+            setStatusMessage(`Redirecting to ${paymentMethod === 'paypal' ? 'PayPal' : 'Stripe'}...`);
             const payRes = await fetch('/api/payments/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -124,7 +123,7 @@ export default function CheckoutPage() {
             });
             const payData = await payRes.json();
             if (!payRes.ok) throw new Error(payData.error || 'Failed to initialize payment');
-            if (!payData.checkoutUrl) throw new Error('Missing Stripe checkout URL');
+            if (!payData.checkoutUrl) throw new Error('Missing payment checkout URL');
 
             window.location.href = payData.checkoutUrl;
         } catch (error) {
@@ -249,12 +248,12 @@ export default function CheckoutPage() {
                                                 <p>Secure hosted checkout via Stripe</p>
                                             </div>
                                         </label>
-                                        <label className={styles.paymentOption} style={{ opacity: 0.55, cursor: 'not-allowed' }}>
-                                            <input type="radio" name="payment" value="paypal" checked={false} onChange={() => {}} disabled />
+                                        <label className={`${styles.paymentOption} ${paymentMethod === 'paypal' ? styles.paymentActive : ''}`}>
+                                            <input type="radio" name="payment" value="paypal" checked={paymentMethod === 'paypal'} onChange={() => setPaymentMethod('paypal')} />
                                             <div className={styles.paymentIcon}>🅿️</div>
                                             <div>
                                                 <h4>PayPal</h4>
-                                                <p>Temporarily disabled while the real webhook flow is being rolled out</p>
+                                                <p>Redirect to PayPal approval and capture on return</p>
                                             </div>
                                         </label>
                                     </div>

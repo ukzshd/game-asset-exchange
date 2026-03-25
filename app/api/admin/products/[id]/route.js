@@ -2,27 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { assertTrustedOrigin } from '@/lib/request-security';
-import { cleanMultilineText, cleanText, toInteger } from '@/lib/validation';
-
-function sanitizeProductInput(body) {
-    const price = Number.parseFloat(body?.price || '0') || 0;
-    const originalPrice = Number.parseFloat(body?.originalPrice || '0') || 0;
-    const discount = Math.max(0, Math.min(99, toInteger(body?.discount || '0', 0)));
-
-    return {
-        externalId: cleanText(body?.externalId, 120),
-        gameSlug: cleanText(body?.gameSlug, 64),
-        category: cleanText(body?.category, 64),
-        subCategory: cleanText(body?.subCategory, 64),
-        name: cleanText(body?.name, 180),
-        description: cleanMultilineText(body?.description, 2000),
-        price: Math.max(0, price),
-        originalPrice: Math.max(0, originalPrice),
-        discount,
-        image: cleanText(body?.image, 255),
-        inStock: body?.inStock === false || body?.inStock === 0 || body?.inStock === '0' ? 0 : 1,
-    };
-}
+import { normalizeProductInput, syncNormalizedProductModel } from '@/lib/product-model';
 
 export async function PUT(request, { params }) {
     try {
@@ -30,7 +10,7 @@ export async function PUT(request, { params }) {
         await requireAdmin(request);
         const { id } = await params;
         const body = await request.json();
-        const input = sanitizeProductInput(body);
+        const input = normalizeProductInput(body);
 
         if (!input.gameSlug || !input.category || !input.name) {
             return NextResponse.json({ error: 'gameSlug, category, and name are required' }, { status: 400 });
@@ -54,10 +34,18 @@ export async function PUT(request, { params }) {
                 sub_category = ?,
                 name = ?,
                 description = ?,
+                platform = ?,
+                server_region = ?,
+                rarity = ?,
+                delivery_note = ?,
+                package_label = ?,
+                package_size = ?,
+                package_unit = ?,
                 price = ?,
                 original_price = ?,
                 discount = ?,
                 in_stock = ?,
+                stock_quantity = ?,
                 image = ?
             WHERE id = ?
         `).run(
@@ -67,13 +55,23 @@ export async function PUT(request, { params }) {
             input.subCategory,
             input.name,
             input.description,
+            input.platform,
+            input.serverRegion,
+            input.rarity,
+            input.deliveryNote,
+            input.packageLabel || input.name,
+            input.packageSize,
+            input.packageUnit,
             input.price,
             input.originalPrice || input.price,
             input.discount,
-            input.inStock,
+            input.inStock ? 1 : 0,
+            input.stockQuantity,
             input.image,
             id
         );
+
+        await syncNormalizedProductModel(db, id, input);
 
         const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(id);
         return NextResponse.json({ product });
@@ -90,16 +88,29 @@ export async function DELETE(request, { params }) {
         await requireAdmin(request);
         const { id } = await params;
         const db = await getDb();
+        const product = await db.prepare('SELECT id, spu_id, sku_id FROM products WHERE id = ?').get(id);
+        if (!product) {
+            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+        }
         const inOrders = (await db.prepare('SELECT COUNT(*)::int as c FROM order_items WHERE product_id = ?').get(id)).c;
 
         if (inOrders > 0) {
             return NextResponse.json({ error: 'Cannot delete a product referenced by orders' }, { status: 400 });
         }
 
-        const result = await db.prepare('DELETE FROM products WHERE id = ?').run(id);
-        if (result.changes === 0) {
-            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-        }
+        const tx = db.transaction(async () => {
+            await db.prepare('DELETE FROM products WHERE id = ?').run(id);
+            if (product.sku_id) {
+                await db.prepare('DELETE FROM product_skus WHERE id = ?').run(product.sku_id);
+            }
+            if (product.spu_id) {
+                const skuCount = (await db.prepare('SELECT COUNT(*)::int as c FROM product_skus WHERE spu_id = ?').get(product.spu_id)).c;
+                if (skuCount === 0) {
+                    await db.prepare('DELETE FROM product_spus WHERE id = ?').run(product.spu_id);
+                }
+            }
+        });
+        await tx();
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -4,6 +4,7 @@ import { hashPassword, generateToken, generateReferralCode } from '@/lib/auth';
 import { assertRateLimit } from '@/lib/rate-limit';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { normalizeEmail, cleanText, isValidEmail, isStrongEnoughPassword } from '@/lib/validation';
+import { verifyEmailCode } from '@/lib/email-verification';
 
 export async function POST(request) {
     try {
@@ -15,15 +16,19 @@ export async function POST(request) {
         const password = body?.password || '';
         const username = cleanText(body?.username, 64);
         const referredBy = cleanText(body?.referredBy, 32).toUpperCase();
+        const verifyCode = String(body?.verifyCode || '').trim();
 
-        if (!email || !password || !username) {
-            return NextResponse.json({ error: 'Email, password, and username are required' }, { status: 400 });
+        if (!email || !password || !username || !verifyCode) {
+            return NextResponse.json({ error: 'Email, password, username, and verification code are required' }, { status: 400 });
         }
         if (!isValidEmail(email)) {
             return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
         }
         if (!isStrongEnoughPassword(password)) {
             return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+        }
+        if (!(await verifyEmailCode({ email, purpose: 'register', code: verifyCode }))) {
+            return NextResponse.json({ error: 'Invalid or expired verification code' }, { status: 400 });
         }
 
         const db = await getDb();
@@ -43,7 +48,7 @@ export async function POST(request) {
         ).run(email, passwordHash, username, referralCode, referredBy || '');
 
         const user = await db.prepare(`
-            SELECT id, email, username, role, embark_id, phone, referral_code, referred_by, created_at
+            SELECT id, email, username, avatar_url, google_id, discord_id, steam_id, role, embark_id, phone, referral_code, referred_by, created_at
             FROM users WHERE id = ?
         `).get(result.lastInsertRowid);
         const token = await generateToken(user);

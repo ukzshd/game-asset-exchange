@@ -2,27 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { assertTrustedOrigin } from '@/lib/request-security';
-import { cleanMultilineText, cleanText, toInteger } from '@/lib/validation';
-
-function sanitizeProductInput(body) {
-    const price = Number.parseFloat(body?.price || '0') || 0;
-    const originalPrice = Number.parseFloat(body?.originalPrice || '0') || 0;
-    const discount = Math.max(0, Math.min(99, toInteger(body?.discount || '0', 0)));
-
-    return {
-        externalId: cleanText(body?.externalId, 120),
-        gameSlug: cleanText(body?.gameSlug, 64),
-        category: cleanText(body?.category, 64),
-        subCategory: cleanText(body?.subCategory, 64),
-        name: cleanText(body?.name, 180),
-        description: cleanMultilineText(body?.description, 2000),
-        price: Math.max(0, price),
-        originalPrice: Math.max(0, originalPrice),
-        discount,
-        image: cleanText(body?.image, 255),
-        inStock: body?.inStock === false || body?.inStock === 0 || body?.inStock === '0' ? 0 : 1,
-    };
-}
+import { cleanText } from '@/lib/validation';
+import { normalizeProductInput, syncNormalizedProductModel } from '@/lib/product-model';
 
 export async function GET(request) {
     try {
@@ -47,10 +28,12 @@ export async function GET(request) {
 
         const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
         const products = await db.prepare(`
-            SELECT *
-            FROM products
-            ${clause}
-            ORDER BY game_slug ASC, name ASC
+            SELECT p.*, spu.delivery_note, sku.package_label, sku.package_size, sku.package_unit, sku.stock_quantity
+            FROM products p
+            LEFT JOIN product_spus spu ON spu.id = p.spu_id
+            LEFT JOIN product_skus sku ON sku.id = p.sku_id
+            ${clause.replaceAll('game_slug', 'p.game_slug').replaceAll('name', 'p.name').replaceAll('description', 'p.description').replaceAll('external_id', 'p.external_id')}
+            ORDER BY p.game_slug ASC, p.name ASC
         `).all(...params);
 
         return NextResponse.json({ products });
@@ -66,7 +49,7 @@ export async function POST(request) {
         assertTrustedOrigin(request);
         await requireAdmin(request);
         const body = await request.json();
-        const input = sanitizeProductInput(body);
+        const input = normalizeProductInput(body);
 
         if (!input.gameSlug || !input.category || !input.name) {
             return NextResponse.json({ error: 'gameSlug, category, and name are required' }, { status: 400 });
@@ -80,8 +63,9 @@ export async function POST(request) {
         const result = await db.prepare(`
             INSERT INTO products (
                 external_id, game_slug, category, sub_category, name, description,
-                price, original_price, discount, in_stock, image
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                platform, server_region, rarity, delivery_note, package_label, package_size, package_unit,
+                price, original_price, discount, in_stock, stock_quantity, image
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             input.externalId,
             input.gameSlug,
@@ -89,12 +73,22 @@ export async function POST(request) {
             input.subCategory,
             input.name,
             input.description,
+            input.platform,
+            input.serverRegion,
+            input.rarity,
+            input.deliveryNote,
+            input.packageLabel || input.name,
+            input.packageSize,
+            input.packageUnit,
             input.price,
             input.originalPrice || input.price,
             input.discount,
-            input.inStock,
+            input.inStock ? 1 : 0,
+            input.stockQuantity,
             input.image
         );
+
+        await syncNormalizedProductModel(db, result.lastInsertRowid, input);
 
         const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
         return NextResponse.json({ product }, { status: 201 });

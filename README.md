@@ -1,6 +1,6 @@
 # IGGM-Style Game Asset Exchange
 
-English summary: this repository is a Next.js 16 full-stack marketplace prototype for game assets. It implements a real Stripe checkout flow, webhook-driven payment confirmation, PostgreSQL-backed catalog and content data, staff order operations, admin product/article management, password reset, exchange-rate syncing, risk event logging, and SEO-supporting routes such as `robots.txt`, `sitemap.xml`, metadata, and JSON-LD.
+English summary: this repository is a Next.js 16 full-stack marketplace prototype for game assets. It implements real Stripe and PayPal checkout flows, webhook-driven payment confirmation, PostgreSQL-backed catalog and content data, staff order operations, admin product/article management, password reset, exchange-rate syncing, risk event logging, and SEO-supporting routes such as `robots.txt`, `sitemap.xml`, metadata, and JSON-LD.
 
 ---
 
@@ -17,11 +17,14 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 当前已经具备：
 
 - 真实 Stripe Checkout 支付链路
+- 真实 PayPal Orders 支付链路
 - Stripe Webhook 验签与支付确认
+- PayPal 回跳确认与 Webhook 验签
 - PostgreSQL 数据库驱动的商品、订单、内容、汇率、风控数据
 - `user / worker / support / admin` 角色体系
 - 订单创建、派单、状态流转、退款
 - 后台商品管理
+- 商品 SPU / SKU / 库存层
 - 后台文章管理
 - 新闻/攻略列表与详情页
 - 密码重置请求与确认
@@ -42,8 +45,6 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 
 当前仍未完成或只做了基础版的内容：
 
-- PayPal 真接入
-- Steam / Discord / Google OAuth
 - 邮箱验证码注册/登录
 - 实时客服机器人（Slack / Discord / 企微等）
 - 更高级的设备指纹和支付风控
@@ -75,6 +76,12 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 
 - 邮箱注册
 - 邮箱密码登录
+- 邮箱验证码发送
+- 邮箱验证码登录
+- 邮箱验证码注册校验
+- Google OAuth 登录
+- Discord OAuth 登录
+- Steam OpenID 登录
 - JWT 鉴权
 - 个人资料修改
 - 密码修改
@@ -86,17 +93,21 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 创建订单
 - 保存交付信息（Embark ID、角色名、联系邮箱等）
 - Stripe Checkout 会话创建
+- PayPal Orders 创建与跳转
 - Stripe Webhook 验签
+- PayPal Webhook 验签
 - 支付成功自动推进订单到 `paid`
 - 支付失败/过期推进到 `payment_failed`
 - 后台订单派单
 - 严格订单状态机
-- Stripe 退款联动
+- Stripe / PayPal 退款联动
 - 订单状态日志
 
 ### 商品与搜索
 
 - PostgreSQL 驱动的商品查询
+- 兼容旧前台的商品读模型
+- 归一化 `SPU / SKU / inventory_lots` 数据结构
 - 游戏目录筛选和商品 API
 - 商品详情 API
 - 全站搜索 API
@@ -131,6 +142,15 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 后台风控事件查看
 - 可选运营 webhook 通知（支付成功时推送）
 
+### 商品运营模型
+
+- `product_spus`：商品主模型
+- `product_skus`：可售套餐模型
+- `inventory_lots`：库存批次模型
+- 支付成功自动扣减库存
+- 退款自动回补库存
+- 订单创建会校验可售库存
+
 ### 安全基础
 
 - JWT + bcrypt
@@ -156,8 +176,8 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 | 视图库 | React 19.2.3 |
 | 数据库 | PostgreSQL + `pg` |
 | 测试数据库 | `pg-mem` |
-| 认证 | `jose` + `bcryptjs` |
-| 支付 | Stripe Checkout + Webhook |
+| 认证 | `jose` + `bcryptjs` + OAuth/OpenID |
+| 支付 | Stripe Checkout + PayPal Orders + Webhook |
 | 邮件 | `nodemailer` |
 | 状态管理 | Zustand |
 | 样式 | CSS Modules |
@@ -174,8 +194,8 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 2. 加入购物车
 3. 在结账页填写游戏交付信息
 4. 创建订单
-5. 跳转 Stripe Checkout 完成支付
-6. Stripe Webhook 通知平台支付成功
+5. 跳转 Stripe Checkout 或 PayPal 完成支付
+6. 支付平台通过 webhook 或回跳确认推进订单
 7. 成功页返回后，前端调用确认接口对账
 8. 用户在个人中心查看订单状态
 
@@ -186,7 +206,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 3. 派单给 `worker` 或 `support`
 4. 被分配人员推进：`assigned -> delivering -> delivered`
 5. `admin / support` 收尾推进到 `completed`
-6. 如需售后，可推进到 `refunded` 并触发 Stripe Refund
+6. 如需售后，可推进到 `refunded` 并触发 Stripe 或 PayPal Refund
 
 ### 内容与增长流程
 
@@ -194,12 +214,28 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 2. 前台 `/news` 和游戏 SEO 区块读取已发布文章
 3. `sitemap.xml` 自动收录内容页与商品页
 
+### OAuth 登录流程
+
+1. 用户在登录弹窗选择 Google / Discord / Steam
+2. 浏览器跳转到 provider 授权页
+3. provider 回调 `/api/auth/oauth/[provider]/callback`
+4. 服务端验证 state、换取用户信息并自动创建或绑定本地账号
+5. 回跳 `/auth/callback` 后写入本地 token 并恢复原页面
+
 ### 密码找回流程
 
 1. 用户进入 `/forgot-password`
 2. 提交邮箱，系统生成一次性重置 token
 3. 如果 SMTP 已配置，系统发送重置链接
 4. 用户带 token 打开同页面并设置新密码
+
+### 邮箱验证码流程
+
+1. 用户在登录或注册弹窗输入邮箱
+2. 点击 `Send` 请求验证码
+3. 服务端生成 6 位验证码并发送邮件
+4. 注册时必须携带验证码
+5. 登录时可以使用密码，或者直接使用验证码登录
 
 ---
 
@@ -245,6 +281,9 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 
 - `users`
 - `products`
+- `product_spus`
+- `product_skus`
+- `inventory_lots`
 - `orders`
 - `order_items`
 - `coupons`
@@ -258,6 +297,10 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 ### 关键补充说明
 
 - `products.external_id`：兼容站外或原始商品标识
+- `products`：当前前台兼容读模型，保留给现有页面和订单引用
+- `product_spus`：统一商品主档，保存游戏、分类、平台、区服、稀有度、交付说明
+- `product_skus`：具体售卖套餐，保存套餐名称、数量单位、价格、库存
+- `inventory_lots`：批次库存，支持后续扩展为人工库存池/供应来源
 - `orders`：保存支付、派单、交付、收货等字段
 - `content_articles`：存储新闻/攻略内容
 - `exchange_rates`：存储当前汇率快照
@@ -339,6 +382,15 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+GOOGLE_CLIENT_ID=google_client_id
+GOOGLE_CLIENT_SECRET=google_client_secret
+DISCORD_CLIENT_ID=discord_client_id
+DISCORD_CLIENT_SECRET=discord_client_secret
+STEAM_API_KEY=
+PAYPAL_CLIENT_ID=paypal_client_id
+PAYPAL_CLIENT_SECRET=paypal_client_secret
+PAYPAL_WEBHOOK_ID=wh_123456789
+PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
 
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
@@ -361,6 +413,24 @@ EXCHANGE_RATE_API_URL=https://open.er-api.com/v6/latest/USD
 
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+
+### PayPal 必填（真实支付时）
+
+- `PAYPAL_CLIENT_ID`
+- `PAYPAL_CLIENT_SECRET`
+
+### PayPal Webhook 可选但强烈建议配置
+
+- `PAYPAL_WEBHOOK_ID`
+- `PAYPAL_BASE_URL`
+
+### OAuth 可选（启用对应 provider 时）
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `DISCORD_CLIENT_ID`
+- `DISCORD_CLIENT_SECRET`
+- `STEAM_API_KEY`（当前登录主链不强依赖，可选用于后续扩展）
 
 ### SMTP 可选（密码找回邮件时）
 
@@ -419,7 +489,7 @@ npm run bootstrap:admin -- --email admin@example.com --password StrongPassword12
 
 ---
 
-## 13. Stripe 本地联调
+## 13. 支付联调
 
 ### 启动项目
 
@@ -427,7 +497,7 @@ npm run bootstrap:admin -- --email admin@example.com --password StrongPassword12
 npm run dev
 ```
 
-### 使用 Stripe CLI 转发 webhook
+### Stripe
 
 ```bash
 stripe listen --forward-to localhost:3000/api/payments/webhook
@@ -446,9 +516,65 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 3. 完成沙盒支付
 4. 检查后台订单是否自动从 `pending_payment` 变成 `paid`
 
+### PayPal
+
+PayPal sandbox 需要先在开发者后台创建：
+
+1. Sandbox App
+2. Webhook
+3. 绑定事件：
+   - `PAYMENT.CAPTURE.COMPLETED`
+   - `PAYMENT.CAPTURE.DENIED`
+   - `CHECKOUT.ORDER.APPROVED`
+
+把后台给你的值填进：
+
+```env
+PAYPAL_CLIENT_ID=paypal_client_id
+PAYPAL_CLIENT_SECRET=paypal_client_secret
+PAYPAL_WEBHOOK_ID=wh_123456789
+PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
+```
+
+PayPal webhook 地址：
+
+```text
+http://localhost:3000/api/payments/paypal/webhook
+```
+
+测试流程：
+
+1. 结账页选择 `PayPal`
+2. 创建订单后跳转 PayPal approval 页面
+3. 完成 sandbox 支付
+4. 回跳 `/checkout` 后自动 capture 并确认订单
+5. 检查后台订单是否自动变成 `paid`
+
 ---
 
-## 14. 主要路由说明
+## 14. OAuth 联调
+
+Google callback：
+
+```text
+http://localhost:3000/api/auth/oauth/google/callback
+```
+
+Discord callback：
+
+```text
+http://localhost:3000/api/auth/oauth/discord/callback
+```
+
+Steam return URL：
+
+```text
+http://localhost:3000/api/auth/oauth/steam/callback
+```
+
+需要在各 provider 后台把上述地址加入允许回调列表。
+
+## 15. 主要路由说明
 
 ### 前台页面
 
@@ -462,12 +588,16 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 
 ### 核心 API
 
+- `GET /api/auth/oauth/:provider`
+- `GET /api/auth/oauth/:provider/callback`
+- `POST /api/auth/verification-code`
 - `POST /api/orders`
 - `GET /api/orders`
 - `PUT /api/orders/:id/status`
 - `POST /api/payments/create`
 - `POST /api/payments/confirm`
 - `POST /api/payments/webhook`
+- `POST /api/payments/paypal/webhook`
 - `GET /api/search`
 - `GET /api/products/:game`
 - `GET /api/products/:game/:id`
@@ -494,7 +624,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 
 ---
 
-## 15. 密码重置说明
+## 16. 密码重置说明
 
 ### 请求重置
 
@@ -516,7 +646,7 @@ curl -X POST http://localhost:3000/api/auth/password-reset/confirm \
 
 ---
 
-## 16. 汇率同步说明
+## 17. 汇率同步说明
 
 ### 读取当前汇率
 
@@ -536,7 +666,7 @@ curl -X POST http://localhost:3000/api/admin/currency-rates/sync \
 
 ---
 
-## 17. 风控说明
+## 18. 风控说明
 
 当前风控是基础版，主要用于把订单创建时的可疑信号落库，便于后台查看。
 
@@ -554,7 +684,7 @@ curl -X POST http://localhost:3000/api/admin/currency-rates/sync \
 
 ---
 
-## 18. 测试与校验
+## 19. 测试与校验
 
 运行单元测试：
 
@@ -583,8 +713,13 @@ npm run verify
 当前自动化测试覆盖：
 
 - 下单与支付主链路
+- PayPal 创建、确认与退款主链路
+- OAuth 登录回调
+- 邮箱验证码发送 / 注册 / 登录
+- SPU / SKU / 库存同步
+- 支付成功扣减库存与退款回补
 - 订单派单与状态流转
-- Stripe 退款联动
+- Stripe / PayPal 退款联动
 - 搜索与商品详情 API
 - 文章 API
 - 后台商品管理
@@ -594,7 +729,7 @@ npm run verify
 
 ---
 
-## 19. 目录结构
+## 20. 目录结构
 
 ```text
 app/
@@ -623,12 +758,10 @@ tests/
 
 ---
 
-## 20. 已知限制
+## 21. 已知限制
 
 当前仍然存在这些明确限制：
 
-- 只接了 Stripe，没有接 PayPal
-- 没有 OAuth 登录
 - 前端筛选能力仍偏轻量
 - 商品模型还没有完全升级成复杂 SPU/SKU/库存池
 - 邮件系统只做了 SMTP 发送，不含完整模板、队列和投递重试
@@ -637,13 +770,11 @@ tests/
 
 ---
 
-## 21. 建议下一步
+## 22. 建议下一步
 
 如果继续往可商用方向推进，优先级建议是：
 
-1. 接入 PayPal
-2. 补 OAuth 登录
-3. 升级商品/库存模型
-4. 增强后台内容工作流
-5. 增加邮件模板、发送队列与通知中心
-6. 加强反欺诈和支付风控
+1. 升级商品/库存模型
+2. 增强后台内容工作流
+3. 增加邮件模板、发送队列与通知中心
+4. 加强反欺诈和支付风控

@@ -20,55 +20,61 @@ export async function GET(request, { params }) {
 
         const db = await getDb();
 
-        let where = 'WHERE game_slug = ?';
+        let where = 'WHERE p.game_slug = ?';
         const queryParams = [game];
 
         if (category) {
-            where += ' AND category = ?';
+            where += ' AND p.category = ?';
             queryParams.push(category);
         }
 
         if (subCategory) {
-            where += ' AND sub_category = ?';
+            where += ' AND p.sub_category = ?';
             queryParams.push(subCategory);
         }
 
         if (search) {
-            where += ' AND (name LIKE ? OR description LIKE ?)';
-            queryParams.push(`%${search}%`, `%${search}%`);
+            where += ' AND (p.name LIKE ? OR p.description LIKE ? OR p.package_label LIKE ?)';
+            queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
         if (minPrice > 0) {
-            where += ' AND price >= ?';
+            where += ' AND p.price >= ?';
             queryParams.push(minPrice);
         }
 
         if (hasMaxPrice) {
-            where += ' AND price <= ?';
+            where += ' AND p.price <= ?';
             queryParams.push(maxPriceRaw);
         }
 
-        let orderBy = 'ORDER BY name ASC';
+        let orderBy = 'ORDER BY p.name ASC';
         switch (sort) {
             case 'name_desc':
-                orderBy = 'ORDER BY name DESC';
+                orderBy = 'ORDER BY p.name DESC';
                 break;
             case 'price_asc':
-                orderBy = 'ORDER BY price ASC';
+                orderBy = 'ORDER BY p.price ASC';
                 break;
             case 'price_desc':
-                orderBy = 'ORDER BY price DESC';
+                orderBy = 'ORDER BY p.price DESC';
                 break;
             case 'created_desc':
-                orderBy = 'ORDER BY created_at DESC';
+                orderBy = 'ORDER BY p.created_at DESC';
                 break;
             default:
-                orderBy = 'ORDER BY name ASC';
+                orderBy = 'ORDER BY p.name ASC';
                 break;
         }
 
-        const countRow = await db.prepare(`SELECT COUNT(*)::int as total FROM products ${where}`).get(...queryParams);
-        const products = await db.prepare(`SELECT * FROM products ${where} ${orderBy} LIMIT ? OFFSET ?`).all(...queryParams, limit, offset);
+        const countRow = await db.prepare(`SELECT COUNT(*)::int as total FROM products p ${where}`).get(...queryParams);
+        const products = await db.prepare(`
+            SELECT p.*
+            FROM products p
+            ${where}
+            ${orderBy}
+            LIMIT ? OFFSET ?
+        `).all(...queryParams, limit, offset);
         const categories = (await db.prepare('SELECT DISTINCT category FROM products WHERE game_slug = ? ORDER BY category').all(game)).map((row) => row.category);
         const subCategories = (await db.prepare("SELECT DISTINCT sub_category FROM products WHERE game_slug = ? AND sub_category != '' ORDER BY sub_category").all(game)).map((row) => row.sub_category);
 

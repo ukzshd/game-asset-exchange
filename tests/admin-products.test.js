@@ -16,6 +16,7 @@ describe('admin product management', () => {
         const { token } = await createUser({ email: 'admin-products@example.com', username: 'adminproducts', role: 'admin' });
         const { POST, GET } = await import('@/app/api/admin/products/route');
         const { PUT, DELETE } = await import('@/app/api/admin/products/[id]/route');
+        const { getDb } = await import('@/lib/db');
 
         const createResponse = await POST(new Request('http://localhost:3000/api/admin/products', {
             method: 'POST',
@@ -28,11 +29,19 @@ describe('admin product management', () => {
                 gameSlug: 'diablo-4',
                 category: 'Gold',
                 subCategory: 'Seasonal',
+                platform: 'PC',
+                serverRegion: 'US',
+                rarity: 'Legendary',
                 name: '10M Diablo 4 Gold',
                 description: 'Manual delivery after payment.',
+                deliveryNote: 'Meet in Kyovashad.',
+                packageLabel: '10M Gold',
+                packageSize: '10',
+                packageUnit: 'million',
                 price: '19.99',
                 originalPrice: '24.99',
                 discount: '10',
+                stockQuantity: '25',
                 inStock: true,
             }),
         }));
@@ -40,6 +49,15 @@ describe('admin product management', () => {
         expect(createResponse.status).toBe(201);
         const createPayload = await createResponse.json();
         expect(createPayload.product.external_id).toBe('d4-gold-10m');
+        expect(createPayload.product.stock_quantity).toBe(25);
+
+        const db = await getDb();
+        const sku = await db.prepare('SELECT * FROM product_skus WHERE legacy_product_id = ?').get(createPayload.product.id);
+        const spu = await db.prepare('SELECT * FROM product_spus WHERE id = ?').get(createPayload.product.spu_id);
+        const lot = await db.prepare('SELECT * FROM inventory_lots WHERE sku_id = ?').get(createPayload.product.sku_id);
+        expect(spu.platform).toBe('PC');
+        expect(sku.package_label).toBe('10M Gold');
+        expect(lot.available_quantity).toBe(25);
 
         const listResponse = await GET(new Request('http://localhost:3000/api/admin/products?search=Diablo', {
             headers: {
@@ -61,11 +79,19 @@ describe('admin product management', () => {
                 gameSlug: 'diablo-4',
                 category: 'Gold',
                 subCategory: 'Seasonal',
+                platform: 'PC',
+                serverRegion: 'EU',
+                rarity: 'Epic',
                 name: '20M Diablo 4 Gold',
                 description: 'Updated stock package.',
+                deliveryNote: 'Updated route.',
+                packageLabel: '20M Gold',
+                packageSize: '20',
+                packageUnit: 'million',
                 price: '34.99',
                 originalPrice: '39.99',
                 discount: '12',
+                stockQuantity: '8',
                 inStock: false,
             }),
         }), {
@@ -76,6 +102,11 @@ describe('admin product management', () => {
         const updatePayload = await updateResponse.json();
         expect(updatePayload.product.external_id).toBe('d4-gold-20m');
         expect(updatePayload.product.in_stock).toBe(0);
+
+        const updatedSku = await db.prepare('SELECT * FROM product_skus WHERE legacy_product_id = ?').get(createPayload.product.id);
+        const updatedSpu = await db.prepare('SELECT * FROM product_spus WHERE id = ?').get(updatePayload.product.spu_id);
+        expect(updatedSku.stock_quantity).toBe(8);
+        expect(updatedSpu.server_region).toBe('EU');
 
         const deleteResponse = await DELETE(new Request(`http://localhost:3000/api/admin/products/${createPayload.product.id}`, {
             method: 'DELETE',
