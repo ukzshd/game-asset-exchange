@@ -339,4 +339,69 @@ describe('order and payment flow', () => {
         expect(refundedOrder.status).toBe('refunded');
         expect(refundedOrder.payment_reference).toBe('R-123');
     });
+
+    it('allocates inventory across multiple lots and restores the same lots on refund', async () => {
+        const { token: buyerToken } = await createUser({ email: 'lotbuyer@example.com', username: 'lotbuyer' });
+        const { token: adminToken } = await createUser({ email: 'lotadmin@example.com', username: 'lotadmin', role: 'admin' });
+        const { POST: createOrder } = await import('@/app/api/orders/route');
+        const { POST: confirmPayment } = await import('@/app/api/payments/confirm/route');
+        const { PUT: updateStatus } = await import('@/app/api/orders/[id]/status/route');
+        const { getDb } = await import('@/lib/db');
+
+        const db = await getDb();
+        await db.prepare('UPDATE inventory_lots SET available_quantity = 3 WHERE sku_id = ?').run(1);
+        await db.prepare(`
+            INSERT INTO inventory_lots (sku_id, source_type, source_ref, available_quantity, reserved_quantity, unit_cost, note)
+            VALUES (1, 'supplier', 'LOT-B', 4, 0, 0, 'Second lot')
+        `).run();
+
+        const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 5, name: 'Bundle' }],
+                embarkId: 'embark#lot',
+                characterName: 'LotBuyer',
+                email: 'lotbuyer@example.com',
+                paymentMethod: 'stripe',
+                currency: 'USD',
+            }),
+        }));
+        const { order } = await orderResponse.json();
+        stripeState.retrievedSession.metadata.order_id = String(order.id);
+
+        const confirmResponse = await confirmPayment(new Request('http://localhost:3000/api/payments/confirm', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({ orderId: order.id, sessionId: 'cs_test_123' }),
+        }));
+        expect(confirmResponse.status).toBe(200);
+
+        const paidLots = await db.prepare('SELECT id, available_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC').all(1);
+        expect(paidLots.map((lot) => lot.available_quantity)).toEqual([0, 2]);
+
+        const allocations = await db.prepare(`
+            SELECT lot_id, quantity
+            FROM order_inventory_allocations
+            WHERE order_id = ?
+            ORDER BY id ASC
+        `).all(order.id);
+        expect(allocations.map((allocation) => allocation.quantity)).toEqual([3, 2]);
+
+        const refundResponse = await updateStatus(
+            new Request(`http://localhost:3000/api/orders/${order.id}/status`, {
+                method: 'PUT',
+                headers: authHeaders(adminToken),
+                body: JSON.stringify({ status: 'refunded', note: 'Restore lots' }),
+            }),
+            { params: Promise.resolve({ id: String(order.id) }) }
+        );
+        expect(refundResponse.status).toBe(200);
+
+        const refundedLots = await db.prepare('SELECT id, available_quantity FROM inventory_lots WHERE sku_id = ? ORDER BY id ASC').all(1);
+        expect(refundedLots.map((lot) => lot.available_quantity)).toEqual([3, 4]);
+
+        const remainingAllocations = await db.prepare('SELECT COUNT(*)::int AS c FROM order_inventory_allocations WHERE order_id = ?').get(order.id);
+        expect(remainingAllocations.c).toBe(0);
+    });
 });

@@ -57,6 +57,7 @@ export default function AdminPage() {
     const [articles, setArticles] = useState([]);
     const [riskEvents, setRiskEvents] = useState([]);
     const [inventoryLots, setInventoryLots] = useState([]);
+    const [inventoryDrafts, setInventoryDrafts] = useState({});
     const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
     const [articleForm, setArticleForm] = useState(EMPTY_ARTICLE);
     const [inventoryForm, setInventoryForm] = useState(EMPTY_INVENTORY_LOT);
@@ -264,6 +265,21 @@ export default function AdminPage() {
             fetchRiskEvents(token);
         }
     }, [activeTab, token, user, fetchRiskEvents]);
+
+    useEffect(() => {
+        setInventoryDrafts((prev) => {
+            const next = {};
+            for (const lot of inventoryLots) {
+                next[lot.id] = prev[lot.id] || {
+                    availableQuantity: String(lot.available_quantity ?? 0),
+                    sourceType: lot.source_type || 'manual',
+                    sourceRef: lot.source_ref || '',
+                    note: lot.note || '',
+                };
+            }
+            return next;
+        });
+    }, [inventoryLots]);
 
     async function updateOrderStatus(orderId, newStatus) {
         try {
@@ -474,6 +490,16 @@ export default function AdminPage() {
         } catch (error) {
             console.error('Failed to update inventory lot:', error);
         }
+    }
+
+    function updateInventoryDraft(lotId, field, value) {
+        setInventoryDrafts((prev) => ({
+            ...prev,
+            [lotId]: {
+                ...(prev[lotId] || {}),
+                [field]: value,
+            },
+        }));
     }
 
     async function deleteInventoryLot(lotId) {
@@ -1129,35 +1155,15 @@ export default function AdminPage() {
                                                             type="number"
                                                             min="0"
                                                             step="1"
-                                                            defaultValue={lot.available_quantity}
-                                                            onBlur={(e) => {
-                                                                const nextQuantity = Number.parseInt(e.target.value || '0', 10);
-                                                                if (nextQuantity !== lot.available_quantity) {
-                                                                    updateInventoryLot(lot.id, {
-                                                                        availableQuantity: nextQuantity,
-                                                                        sourceType: lot.source_type,
-                                                                        sourceRef: lot.source_ref || '',
-                                                                        note: lot.note || '',
-                                                                    });
-                                                                }
-                                                            }}
+                                                            value={inventoryDrafts[lot.id]?.availableQuantity ?? String(lot.available_quantity ?? 0)}
+                                                            onChange={(e) => updateInventoryDraft(lot.id, 'availableQuantity', e.target.value)}
                                                         />
                                                     </td>
                                                     <td>
                                                         <input
                                                             className={styles.textInput}
-                                                            defaultValue={lot.note || ''}
-                                                            onBlur={(e) => {
-                                                                const nextNote = e.target.value || '';
-                                                                if (nextNote !== (lot.note || '')) {
-                                                                    updateInventoryLot(lot.id, {
-                                                                        availableQuantity: lot.available_quantity,
-                                                                        sourceType: lot.source_type,
-                                                                        sourceRef: lot.source_ref || '',
-                                                                        note: nextNote,
-                                                                    });
-                                                                }
-                                                            }}
+                                                            value={inventoryDrafts[lot.id]?.note ?? (lot.note || '')}
+                                                            onChange={(e) => updateInventoryDraft(lot.id, 'note', e.target.value)}
                                                         />
                                                     </td>
                                                     <td className={styles.date}>{String(lot.updated_at).slice(0, 19).replace('T', ' ')}</td>
@@ -1165,12 +1171,15 @@ export default function AdminPage() {
                                                         <div className={styles.actionGroup}>
                                                             <button
                                                                 className={styles.resetBtn}
-                                                                onClick={() => updateInventoryLot(lot.id, {
-                                                                    availableQuantity: lot.available_quantity,
-                                                                    sourceType: lot.source_type,
-                                                                    sourceRef: lot.source_ref || '',
-                                                                    note: lot.note || '',
-                                                                })}
+                                                                onClick={() => {
+                                                                    const draft = inventoryDrafts[lot.id] || {};
+                                                                    updateInventoryLot(lot.id, {
+                                                                        availableQuantity: Number.parseInt(draft.availableQuantity || '0', 10) || 0,
+                                                                        sourceType: draft.sourceType || lot.source_type,
+                                                                        sourceRef: draft.sourceRef ?? lot.source_ref ?? '',
+                                                                        note: draft.note ?? lot.note ?? '',
+                                                                    });
+                                                                }}
                                                             >
                                                                 Save
                                                             </button>
