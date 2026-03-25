@@ -17,9 +17,14 @@ const SORT_MAP = {
 export default function GameCategoryClient({ gameSlug, categorySlug }) {
     const [activeFilters, setActiveFilters] = useState(['All']);
     const [subFilter, setSubFilter] = useState('All');
+    const [platformFilter, setPlatformFilter] = useState('All');
+    const [serverRegionFilter, setServerRegionFilter] = useState('All');
+    const [rarityFilter, setRarityFilter] = useState('All');
+    const [stockFilter, setStockFilter] = useState('all');
     const [sortBy, setSortBy] = useState('az');
     const [searchQuery, setSearchQuery] = useState('');
     const [products, setProducts] = useState([]);
+    const [catalogFilters, setCatalogFilters] = useState({ platforms: [], serverRegions: [], rarities: [] });
     const [loading, setLoading] = useState(true);
 
     const gameData = useMemo(() => gamesData.find((game) => game.slug === gameSlug), [gameSlug]);
@@ -34,6 +39,10 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
                 const params = new URLSearchParams();
                 if (selectedCategory) params.set('category', selectedCategory);
                 if (subFilter && subFilter !== 'All') params.set('subCategory', subFilter);
+                if (platformFilter !== 'All') params.set('platform', platformFilter);
+                if (serverRegionFilter !== 'All') params.set('serverRegion', serverRegionFilter);
+                if (rarityFilter !== 'All') params.set('rarity', rarityFilter);
+                if (stockFilter !== 'all') params.set('stock', stockFilter);
                 if (searchQuery.trim()) params.set('search', searchQuery.trim());
                 params.set('sort', SORT_MAP[sortBy] || 'name_asc');
                 params.set('limit', '120');
@@ -46,11 +55,17 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
                 const payload = await response.json();
                 if (!cancelled) {
                     setProducts(payload.products || []);
+                    setCatalogFilters({
+                        platforms: payload.platforms || [],
+                        serverRegions: payload.serverRegions || [],
+                        rarities: payload.rarities || [],
+                    });
                 }
             } catch (error) {
                 console.error('Catalog fetch error:', error);
                 if (!cancelled) {
                     setProducts([]);
+                    setCatalogFilters({ platforms: [], serverRegions: [], rarities: [] });
                 }
             } finally {
                 if (!cancelled) {
@@ -63,7 +78,7 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
         return () => {
             cancelled = true;
         };
-    }, [activeFilters, subFilter, sortBy, searchQuery, gameSlug]);
+    }, [activeFilters, subFilter, platformFilter, serverRegionFilter, rarityFilter, stockFilter, sortBy, searchQuery, gameSlug]);
 
     if (!gameData) {
         return (
@@ -82,7 +97,9 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
     const activeCategory = gameData.categories.find((item) => item.slug === categorySlug) || gameData.categories[0];
     const filterTypes = gameData.filters?.itemTypes || ['All'];
     const subTypes = gameData.filters?.subTypes || {};
-    const platforms = gameData.filters?.platforms || [];
+    const platforms = catalogFilters.platforms.length > 0 ? catalogFilters.platforms : (gameData.filters?.platforms || []);
+    const serverRegions = catalogFilters.serverRegions;
+    const rarities = catalogFilters.rarities;
 
     const activeMainFilter = activeFilters.find((filter) => filter !== 'All' && subTypes[filter]);
     const currentSubTypes = activeMainFilter ? subTypes[activeMainFilter] : null;
@@ -147,13 +164,70 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
                             <span className={styles.filterLabel}>Platform</span>
                             <div className={styles.filterChips}>
                                 {platforms.map((platform) => (
-                                    <button key={platform} className={`${styles.filterChip} ${styles.chipActive}`}>
+                                    <button
+                                        key={platform}
+                                        className={`${styles.filterChip} ${platformFilter === platform ? styles.chipActive : ''}`}
+                                        onClick={() => setPlatformFilter((prev) => (prev === platform ? 'All' : platform))}
+                                    >
                                         {platform}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     )}
+
+                    {serverRegions.length > 0 && (
+                        <div className={styles.filterRow}>
+                            <span className={styles.filterLabel}>Server</span>
+                            <div className={styles.filterChips}>
+                                {serverRegions.map((server) => (
+                                    <button
+                                        key={server}
+                                        className={`${styles.filterChip} ${serverRegionFilter === server ? styles.chipActive : ''}`}
+                                        onClick={() => setServerRegionFilter((prev) => (prev === server ? 'All' : server))}
+                                    >
+                                        {server}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {rarities.length > 0 && (
+                        <div className={styles.filterRow}>
+                            <span className={styles.filterLabel}>Rarity</span>
+                            <div className={styles.filterChips}>
+                                {rarities.map((item) => (
+                                    <button
+                                        key={item}
+                                        className={`${styles.filterChip} ${rarityFilter === item ? styles.chipActive : ''}`}
+                                        onClick={() => setRarityFilter((prev) => (prev === item ? 'All' : item))}
+                                    >
+                                        {item}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={styles.filterRow}>
+                        <span className={styles.filterLabel}>Stock</span>
+                        <div className={styles.filterChips}>
+                            {[
+                                { value: 'all', label: 'All' },
+                                { value: 'in_stock', label: 'In Stock' },
+                                { value: 'out_of_stock', label: 'Out of Stock' },
+                            ].map((option) => (
+                                <button
+                                    key={option.value}
+                                    className={`${styles.filterChip} ${stockFilter === option.value ? styles.chipActive : ''}`}
+                                    onClick={() => setStockFilter(option.value)}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
                     <div className={styles.filterGrid}>
                         {filterTypes.map((type) => (

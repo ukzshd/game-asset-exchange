@@ -15,6 +15,10 @@ export async function GET(request, { params }) {
         const limit = Math.min(100, Math.max(1, toInteger(searchParams.get('limit') || '40', 40)));
         const minPrice = Math.max(0, Number.parseFloat(searchParams.get('minPrice') || '0') || 0);
         const maxPriceRaw = Number.parseFloat(searchParams.get('maxPrice') || '0') || 0;
+        const platform = cleanText(searchParams.get('platform') || '', 64);
+        const serverRegion = cleanText(searchParams.get('serverRegion') || '', 64);
+        const rarity = cleanText(searchParams.get('rarity') || '', 64);
+        const stock = cleanText(searchParams.get('stock') || '', 24);
         const hasMaxPrice = maxPriceRaw > 0;
         const offset = (page - 1) * limit;
 
@@ -48,6 +52,27 @@ export async function GET(request, { params }) {
             queryParams.push(maxPriceRaw);
         }
 
+        if (platform) {
+            where += ' AND p.platform = ?';
+            queryParams.push(platform);
+        }
+
+        if (serverRegion) {
+            where += ' AND p.server_region = ?';
+            queryParams.push(serverRegion);
+        }
+
+        if (rarity) {
+            where += ' AND p.rarity = ?';
+            queryParams.push(rarity);
+        }
+
+        if (stock === 'in_stock') {
+            where += ' AND p.in_stock = 1';
+        } else if (stock === 'out_of_stock') {
+            where += ' AND p.in_stock = 0';
+        }
+
         let orderBy = 'ORDER BY p.name ASC';
         switch (sort) {
             case 'name_desc':
@@ -77,6 +102,9 @@ export async function GET(request, { params }) {
         `).all(...queryParams, limit, offset);
         const categories = (await db.prepare('SELECT DISTINCT category FROM products WHERE game_slug = ? ORDER BY category').all(game)).map((row) => row.category);
         const subCategories = (await db.prepare("SELECT DISTINCT sub_category FROM products WHERE game_slug = ? AND sub_category != '' ORDER BY sub_category").all(game)).map((row) => row.sub_category);
+        const platforms = (await db.prepare("SELECT DISTINCT platform FROM products WHERE game_slug = ? AND platform != '' ORDER BY platform").all(game)).map((row) => row.platform);
+        const serverRegions = (await db.prepare("SELECT DISTINCT server_region FROM products WHERE game_slug = ? AND server_region != '' ORDER BY server_region").all(game)).map((row) => row.server_region);
+        const rarities = (await db.prepare("SELECT DISTINCT rarity FROM products WHERE game_slug = ? AND rarity != '' ORDER BY rarity").all(game)).map((row) => row.rarity);
 
         return NextResponse.json({
             products,
@@ -86,6 +114,9 @@ export async function GET(request, { params }) {
             totalPages: Math.ceil(countRow.total / limit),
             categories,
             subCategories,
+            platforms,
+            serverRegions,
+            rarities,
         });
     } catch (error) {
         console.error('Products error:', error);

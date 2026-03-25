@@ -40,6 +40,13 @@ const EMPTY_ARTICLE = {
     gameSlug: 'arc-raiders',
     published: true,
 };
+const EMPTY_INVENTORY_LOT = {
+    productId: '',
+    availableQuantity: '0',
+    sourceType: 'manual',
+    sourceRef: '',
+    note: '',
+};
 
 export default function AdminPage() {
     const mounted = useHydrated();
@@ -49,12 +56,16 @@ export default function AdminPage() {
     const [products, setProducts] = useState([]);
     const [articles, setArticles] = useState([]);
     const [riskEvents, setRiskEvents] = useState([]);
+    const [inventoryLots, setInventoryLots] = useState([]);
     const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
     const [articleForm, setArticleForm] = useState(EMPTY_ARTICLE);
+    const [inventoryForm, setInventoryForm] = useState(EMPTY_INVENTORY_LOT);
     const [productSearch, setProductSearch] = useState('');
     const [articleSearch, setArticleSearch] = useState('');
+    const [inventorySearch, setInventorySearch] = useState('');
     const [savingProduct, setSavingProduct] = useState(false);
     const [savingArticle, setSavingArticle] = useState(false);
+    const [savingInventory, setSavingInventory] = useState(false);
     const [staffOptions, setStaffOptions] = useState([]);
     const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, totalUsers: 0, pendingOrders: 0 });
     const [loading, setLoading] = useState(true);
@@ -153,6 +164,23 @@ export default function AdminPage() {
         }
     }, [token, user]);
 
+    const fetchInventoryLots = useCallback(async (authToken = token, search = inventorySearch) => {
+        if (!authToken || user?.role !== 'admin') return;
+        try {
+            const params = new URLSearchParams();
+            if (search.trim()) params.set('search', search.trim());
+            const res = await fetch(`/api/admin/inventory?${params.toString()}`, {
+                headers: { Authorization: `Bearer ${authToken}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setInventoryLots(data.lots || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch inventory lots:', error);
+        }
+    }, [inventorySearch, token, user]);
+
     useEffect(() => {
         initAuth();
     }, [initAuth]);
@@ -192,6 +220,14 @@ export default function AdminPage() {
                         const productsData = await productsRes.json();
                         setProducts(productsData.products || []);
                     }
+
+                    const inventoryRes = await fetch('/api/admin/inventory', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (inventoryRes.ok) {
+                        const inventoryData = await inventoryRes.json();
+                        setInventoryLots(inventoryData.lots || []);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load operations data:', error);
@@ -215,10 +251,13 @@ export default function AdminPage() {
             if (activeTab === 'articles') {
                 fetchArticles(token, articleSearch);
             }
+            if (activeTab === 'inventory') {
+                fetchInventoryLots(token, inventorySearch);
+            }
         }, 200);
 
         return () => clearTimeout(timer);
-    }, [activeTab, productSearch, articleSearch, token, user, fetchProducts, fetchArticles]);
+    }, [activeTab, productSearch, articleSearch, inventorySearch, token, user, fetchProducts, fetchArticles, fetchInventoryLots]);
 
     useEffect(() => {
         if (activeTab === 'risk' && token && STAFF_ROLES.has(user?.role)) {
@@ -397,6 +436,61 @@ export default function AdminPage() {
         }
     }
 
+    async function saveInventoryLot() {
+        if (!inventoryForm.productId || Number.parseInt(inventoryForm.availableQuantity, 10) < 0) {
+            return;
+        }
+
+        setSavingInventory(true);
+        try {
+            const res = await fetch('/api/admin/inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(inventoryForm),
+            });
+            if (res.ok) {
+                setInventoryForm(EMPTY_INVENTORY_LOT);
+                fetchInventoryLots(token, inventorySearch);
+                fetchProducts(token, productSearch);
+            }
+        } catch (error) {
+            console.error('Failed to create inventory lot:', error);
+        } finally {
+            setSavingInventory(false);
+        }
+    }
+
+    async function updateInventoryLot(lotId, updates) {
+        try {
+            const res = await fetch(`/api/admin/inventory/${lotId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(updates),
+            });
+            if (res.ok) {
+                fetchInventoryLots(token, inventorySearch);
+                fetchProducts(token, productSearch);
+            }
+        } catch (error) {
+            console.error('Failed to update inventory lot:', error);
+        }
+    }
+
+    async function deleteInventoryLot(lotId) {
+        try {
+            const res = await fetch(`/api/admin/inventory/${lotId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                fetchInventoryLots(token, inventorySearch);
+                fetchProducts(token, productSearch);
+            }
+        } catch (error) {
+            console.error('Failed to delete inventory lot:', error);
+        }
+    }
+
     async function syncCurrencyRates() {
         try {
             const res = await fetch('/api/admin/currency-rates/sync', {
@@ -486,6 +580,11 @@ export default function AdminPage() {
                     {user.role === 'admin' && (
                         <button className={`${styles.tab} ${activeTab === 'articles' ? styles.tabActive : ''}`} onClick={() => setActiveTab('articles')}>
                             📰 Article Management
+                        </button>
+                    )}
+                    {user.role === 'admin' && (
+                        <button className={`${styles.tab} ${activeTab === 'inventory' ? styles.tabActive : ''}`} onClick={() => setActiveTab('inventory')}>
+                            📚 Inventory Lots
                         </button>
                     )}
                     <button className={`${styles.tab} ${activeTab === 'risk' ? styles.tabActive : ''}`} onClick={() => setActiveTab('risk')}>
@@ -906,6 +1005,186 @@ export default function AdminPage() {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {user.role === 'admin' && activeTab === 'inventory' && (
+                    <div className={styles.productsLayout}>
+                        <div className={styles.formCard}>
+                            <div className={styles.formHeader}>
+                                <h2>Create Inventory Lot</h2>
+                            </div>
+
+                            <div className={styles.formGrid}>
+                                <label className={`${styles.field} ${styles.fieldWide}`}>
+                                    <span>Product</span>
+                                    <select
+                                        className={styles.statusSelect}
+                                        value={inventoryForm.productId}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, productId: e.target.value }))}
+                                    >
+                                        <option value="">Select product...</option>
+                                        {products.map((product) => (
+                                            <option key={product.id} value={product.id}>
+                                                #{product.id} {product.name} ({product.game_slug})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Quantity</span>
+                                    <input
+                                        className={styles.textInput}
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={inventoryForm.availableQuantity}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, availableQuantity: e.target.value }))}
+                                    />
+                                </label>
+                                <label className={styles.field}>
+                                    <span>Source Type</span>
+                                    <input
+                                        className={styles.textInput}
+                                        value={inventoryForm.sourceType}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, sourceType: e.target.value }))}
+                                    />
+                                </label>
+                                <label className={`${styles.field} ${styles.fieldWide}`}>
+                                    <span>Source Ref</span>
+                                    <input
+                                        className={styles.textInput}
+                                        value={inventoryForm.sourceRef}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, sourceRef: e.target.value }))}
+                                    />
+                                </label>
+                                <label className={`${styles.field} ${styles.fieldWide}`}>
+                                    <span>Note</span>
+                                    <textarea
+                                        className={styles.textArea}
+                                        value={inventoryForm.note}
+                                        onChange={(e) => setInventoryForm((prev) => ({ ...prev, note: e.target.value }))}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className={styles.formActions}>
+                                <button className="btn btn-primary" onClick={saveInventoryLot} disabled={savingInventory}>
+                                    {savingInventory ? 'Saving...' : 'Create Lot'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.tableCard}>
+                            <div className={styles.toolbar}>
+                                <input
+                                    className={styles.textInput}
+                                    placeholder="Search lots by product or ref..."
+                                    value={inventorySearch}
+                                    onChange={(e) => setInventorySearch(e.target.value)}
+                                />
+                                <button className={styles.resetBtn} onClick={() => fetchInventoryLots(token, inventorySearch)}>
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {inventoryLots.length === 0 ? (
+                                <div className={styles.emptyState}>No inventory lots available.</div>
+                            ) : (
+                                <div className={styles.tableWrapper}>
+                                    <table className={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th>Lot</th>
+                                                <th>Product</th>
+                                                <th>Package</th>
+                                                <th>Source</th>
+                                                <th>Quantity</th>
+                                                <th>Note</th>
+                                                <th>Updated</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {inventoryLots.map((lot) => (
+                                                <tr key={lot.id}>
+                                                    <td className={styles.orderNo}>#{lot.id}</td>
+                                                    <td>
+                                                        <div className={styles.customer}>
+                                                            <span className={styles.customerName}>{lot.product_name}</span>
+                                                            <span className={styles.customerEmail}>{lot.game_slug} / #{lot.product_id}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>{lot.package_label || `${lot.package_size || 1} ${lot.package_unit || 'bundle'}`}</td>
+                                                    <td>
+                                                        <div className={styles.customer}>
+                                                            <span className={styles.customerName}>{lot.source_type}</span>
+                                                            <span className={styles.customerEmail}>{lot.source_ref || '-'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <input
+                                                            className={styles.textInput}
+                                                            type="number"
+                                                            min="0"
+                                                            step="1"
+                                                            defaultValue={lot.available_quantity}
+                                                            onBlur={(e) => {
+                                                                const nextQuantity = Number.parseInt(e.target.value || '0', 10);
+                                                                if (nextQuantity !== lot.available_quantity) {
+                                                                    updateInventoryLot(lot.id, {
+                                                                        availableQuantity: nextQuantity,
+                                                                        sourceType: lot.source_type,
+                                                                        sourceRef: lot.source_ref || '',
+                                                                        note: lot.note || '',
+                                                                    });
+                                                                }
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <input
+                                                            className={styles.textInput}
+                                                            defaultValue={lot.note || ''}
+                                                            onBlur={(e) => {
+                                                                const nextNote = e.target.value || '';
+                                                                if (nextNote !== (lot.note || '')) {
+                                                                    updateInventoryLot(lot.id, {
+                                                                        availableQuantity: lot.available_quantity,
+                                                                        sourceType: lot.source_type,
+                                                                        sourceRef: lot.source_ref || '',
+                                                                        note: nextNote,
+                                                                    });
+                                                                }
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td className={styles.date}>{String(lot.updated_at).slice(0, 19).replace('T', ' ')}</td>
+                                                    <td>
+                                                        <div className={styles.actionGroup}>
+                                                            <button
+                                                                className={styles.resetBtn}
+                                                                onClick={() => updateInventoryLot(lot.id, {
+                                                                    availableQuantity: lot.available_quantity,
+                                                                    sourceType: lot.source_type,
+                                                                    sourceRef: lot.source_ref || '',
+                                                                    note: lot.note || '',
+                                                                })}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button className={styles.dangerBtn} onClick={() => deleteInventoryLot(lot.id)}>
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

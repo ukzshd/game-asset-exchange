@@ -24,6 +24,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - `user / worker / support / admin` 角色体系
 - 订单创建、派单、状态流转、退款
 - 后台商品管理
+- 后台库存批次管理
 - 商品 SPU / SKU / 库存层
 - 后台文章管理
 - 新闻/攻略列表与详情页
@@ -45,11 +46,10 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 
 当前仍未完成或只做了基础版的内容：
 
-- 邮箱验证码注册/登录
 - 实时客服机器人（Slack / Discord / 企微等）
 - 更高级的设备指纹和支付风控
 - 真正的内容工作流 CMS（当前是轻量后台文章管理）
-- 更复杂的商品/SPU/SKU/库存池模型
+- 多仓、多供应商分单、锁库等更复杂的库存池模型
 
 也就是说，仓库里“本地可以持续开发并落地验证”的高价值部分，已经补到了较完整的程度；剩余缺口主要依赖第三方平台能力或更重的运营系统扩展。
 
@@ -114,6 +114,8 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - Header 搜索建议
 - 独立搜索页
 - 后台商品新增 / 编辑 / 删除
+- 后台库存批次新增 / 编辑 / 删除
+- 目录真实筛选：`platform / serverRegion / rarity / stock`
 
 ### 内容与 SEO
 
@@ -271,7 +273,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 | `user` | 下单、支付、查看自己的订单 |
 | `worker` | 只能操作分配给自己的订单，且只能做 `assigned -> delivering -> delivered` |
 | `support` | 查看全部订单、派单、推进大多数运营状态 |
-| `admin` | 全部能力，可管理用户、商品、文章和汇率同步 |
+| `admin` | 全部能力，可管理用户、商品、库存批次、文章和汇率同步 |
 
 ---
 
@@ -300,7 +302,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - `products`：当前前台兼容读模型，保留给现有页面和订单引用
 - `product_spus`：统一商品主档，保存游戏、分类、平台、区服、稀有度、交付说明
 - `product_skus`：具体售卖套餐，保存套餐名称、数量单位、价格、库存
-- `inventory_lots`：批次库存，支持后续扩展为人工库存池/供应来源
+- `inventory_lots`：批次库存，当前后台支持手动新增、修改、删除，并自动汇总回 `SKU` 和兼容读模型 `products`，后续可继续扩展为人工库存池/供应来源
 - `orders`：保存支付、派单、交付、收货等字段
 - `content_articles`：存储新闻/攻略内容
 - `exchange_rates`：存储当前汇率快照
@@ -586,6 +588,25 @@ http://localhost:3000/api/auth/oauth/steam/callback
 - `/forgot-password`：密码重置页
 - `/admin`：运营后台
 
+### 目录筛选
+
+当前目录页和商品 API 已经接入真实筛选参数：
+
+- `category`
+- `subCategory`
+- `search`
+- `platform`
+- `serverRegion`
+- `rarity`
+- `stock`：`all / in_stock / out_of_stock`
+- `sort`
+
+目录页会根据数据库中的商品数据动态返回：
+
+- `platforms`
+- `serverRegions`
+- `rarities`
+
 ### 核心 API
 
 - `GET /api/auth/oauth/:provider`
@@ -615,6 +636,10 @@ http://localhost:3000/api/auth/oauth/steam/callback
 - `POST /api/admin/products`
 - `PUT /api/admin/products/:id`
 - `DELETE /api/admin/products/:id`
+- `GET /api/admin/inventory`
+- `POST /api/admin/inventory`
+- `PUT /api/admin/inventory/:id`
+- `DELETE /api/admin/inventory/:id`
 - `GET /api/admin/articles`
 - `POST /api/admin/articles`
 - `PUT /api/admin/articles/:id`
@@ -666,7 +691,29 @@ curl -X POST http://localhost:3000/api/admin/currency-rates/sync \
 
 ---
 
-## 18. 风控说明
+## 18. 库存批次管理说明
+
+后台 `/admin` 已经包含 `Inventory Lots` 选项卡，用于做轻量运营库存管理。
+
+当前能力：
+
+- 为现有商品新增库存批次
+- 修改批次数量和备注
+- 删除非最后一个批次
+- 批次变化后自动汇总到：
+  - `product_skus.stock_quantity`
+  - `product_skus.in_stock`
+  - `products.stock_quantity`
+  - `products.in_stock`
+
+这意味着：
+
+- 前台目录页显示的库存状态会跟着批次数据变化
+- 下单校验、支付扣减、退款回补都会继续基于这套库存汇总生效
+
+---
+
+## 19. 风控说明
 
 当前风控是基础版，主要用于把订单创建时的可疑信号落库，便于后台查看。
 
@@ -684,7 +731,7 @@ curl -X POST http://localhost:3000/api/admin/currency-rates/sync \
 
 ---
 
-## 19. 测试与校验
+## 20. 测试与校验
 
 运行单元测试：
 
@@ -717,9 +764,11 @@ npm run verify
 - OAuth 登录回调
 - 邮箱验证码发送 / 注册 / 登录
 - SPU / SKU / 库存同步
+- 后台库存批次管理
 - 支付成功扣减库存与退款回补
 - 订单派单与状态流转
 - Stripe / PayPal 退款联动
+- 目录 API 的 `platform / serverRegion / rarity / stock` 筛选
 - 搜索与商品详情 API
 - 文章 API
 - 后台商品管理
@@ -729,7 +778,7 @@ npm run verify
 
 ---
 
-## 20. 目录结构
+## 21. 目录结构
 
 ```text
 app/
@@ -758,19 +807,19 @@ tests/
 
 ---
 
-## 21. 已知限制
+## 22. 已知限制
 
 当前仍然存在这些明确限制：
 
-- 前端筛选能力仍偏轻量
-- 商品模型还没有完全升级成复杂 SPU/SKU/库存池
+- 目录筛选已经接入真实数据，但前端交互仍然是轻量版
+- 商品模型已升级到 `SPU / SKU / inventory_lots`，但还没有多仓、预留库存、复杂供应商策略
 - 邮件系统只做了 SMTP 发送，不含完整模板、队列和投递重试
 - 风控是基础版，不是专业反欺诈系统
 - 内容后台是轻量实现，不是完整 CMS 工作流
 
 ---
 
-## 22. 建议下一步
+## 23. 建议下一步
 
 如果继续往可商用方向推进，优先级建议是：
 
