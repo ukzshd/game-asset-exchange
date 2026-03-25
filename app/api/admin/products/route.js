@@ -17,12 +17,12 @@ export async function GET(request) {
         const where = [];
 
         if (gameSlug) {
-            where.push('game_slug = ?');
+            where.push('p.game_slug = ?');
             params.push(gameSlug);
         }
 
         if (search) {
-            where.push('(name LIKE ? OR description LIKE ? OR external_id LIKE ?)');
+            where.push('(p.name LIKE ? OR p.description LIKE ? OR p.external_id LIKE ?)');
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
 
@@ -32,7 +32,7 @@ export async function GET(request) {
             FROM products p
             LEFT JOIN product_spus spu ON spu.id = p.spu_id
             LEFT JOIN product_skus sku ON sku.id = p.sku_id
-            ${clause.replaceAll('game_slug', 'p.game_slug').replaceAll('name', 'p.name').replaceAll('description', 'p.description').replaceAll('external_id', 'p.external_id')}
+            ${clause}
             ORDER BY p.game_slug ASC, p.name ASC
         `).all(...params);
 
@@ -60,37 +60,40 @@ export async function POST(request) {
         }
 
         const db = await getDb();
-        const result = await db.prepare(`
-            INSERT INTO products (
-                external_id, game_slug, category, sub_category, name, description,
-                platform, server_region, rarity, delivery_note, package_label, package_size, package_unit,
-                price, original_price, discount, in_stock, stock_quantity, image
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            input.externalId,
-            input.gameSlug,
-            input.category,
-            input.subCategory,
-            input.name,
-            input.description,
-            input.platform,
-            input.serverRegion,
-            input.rarity,
-            input.deliveryNote,
-            input.packageLabel || input.name,
-            input.packageSize,
-            input.packageUnit,
-            input.price,
-            input.originalPrice || input.price,
-            input.discount,
-            input.inStock ? 1 : 0,
-            input.stockQuantity,
-            input.image
-        );
+        const tx = db.transaction(async () => {
+            const result = await db.prepare(`
+                INSERT INTO products (
+                    external_id, game_slug, category, sub_category, name, description,
+                    platform, server_region, rarity, delivery_note, package_label, package_size, package_unit,
+                    price, original_price, discount, in_stock, stock_quantity, image
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                input.externalId,
+                input.gameSlug,
+                input.category,
+                input.subCategory,
+                input.name,
+                input.description,
+                input.platform,
+                input.serverRegion,
+                input.rarity,
+                input.deliveryNote,
+                input.packageLabel || input.name,
+                input.packageSize,
+                input.packageUnit,
+                input.price,
+                input.originalPrice || input.price,
+                input.discount,
+                input.inStock ? 1 : 0,
+                input.stockQuantity,
+                input.image
+            );
 
-        await syncNormalizedProductModel(db, result.lastInsertRowid, input);
-
-        const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+            await syncNormalizedProductModel(db, result.lastInsertRowid, input);
+            return result.lastInsertRowid;
+        });
+        const productId = await tx();
+        const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
         return NextResponse.json({ product }, { status: 201 });
     } catch (error) {
         if (error instanceof Response) return error;

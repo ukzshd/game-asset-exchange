@@ -72,9 +72,9 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const { user, token, init: initAuth } = useAuthStore();
 
-    async function fetchOrders(authToken = token) {
+    const fetchOrders = useCallback(async (authToken = token, withLoading = true) => {
         if (!authToken) return;
-        setLoading(true);
+        if (withLoading) setLoading(true);
         try {
             const res = await fetch('/api/admin/orders', {
                 headers: { Authorization: `Bearer ${authToken}` },
@@ -91,11 +91,11 @@ export default function AdminPage() {
         } catch (error) {
             console.error('Failed to fetch orders:', error);
         } finally {
-            setLoading(false);
+            if (withLoading) setLoading(false);
         }
-    }
+    }, [token]);
 
-    async function fetchUsers(authToken = token) {
+    const fetchUsers = useCallback(async (authToken = token) => {
         if (!authToken) return;
         try {
             const res = await fetch('/api/admin/users', {
@@ -109,7 +109,7 @@ export default function AdminPage() {
         } catch (error) {
             console.error('Failed to fetch users:', error);
         }
-    }
+    }, [token]);
 
     const fetchProducts = useCallback(async (authToken = token, search = productSearch) => {
         if (!authToken || user?.role !== 'admin') return;
@@ -131,19 +131,14 @@ export default function AdminPage() {
     const fetchArticles = useCallback(async (authToken = token, search = articleSearch) => {
         if (!authToken || user?.role !== 'admin') return;
         try {
-            const res = await fetch('/api/admin/articles', {
+            const params = new URLSearchParams();
+            if (search.trim()) params.set('search', search.trim());
+            const res = await fetch(`/api/admin/articles?${params.toString()}`, {
                 headers: { Authorization: `Bearer ${authToken}` },
             });
             if (res.ok) {
                 const data = await res.json();
-                const normalizedSearch = search.trim().toLowerCase();
-                const nextArticles = (data.articles || []).filter((article) => {
-                    if (!normalizedSearch) return true;
-                    return [article.title, article.slug, article.category, article.game_slug, article.excerpt]
-                        .filter(Boolean)
-                        .some((value) => String(value).toLowerCase().includes(normalizedSearch));
-                });
-                setArticles(nextArticles);
+                setArticles(data.articles || []);
             }
         } catch (error) {
             console.error('Failed to fetch articles:', error);
@@ -191,44 +186,15 @@ export default function AdminPage() {
         const loadInitialData = async () => {
             setLoading(true);
             try {
-                const ordersRes = await fetch('/api/admin/orders', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (ordersRes.ok) {
-                    const ordersData = await ordersRes.json();
-                    setOrders(ordersData.orders || []);
-                    setStaffOptions(ordersData.staff || []);
-                    const total = ordersData.orders?.length || 0;
-                    const revenue = ordersData.orders?.reduce((sum, order) => sum + (order.status !== 'refunded' ? order.total : 0), 0) || 0;
-                    const pending = ordersData.orders?.filter((order) => ['pending_payment', 'paid', 'assigned', 'delivering'].includes(order.status)).length || 0;
-                    setStats((prev) => ({ ...prev, totalOrders: total, totalRevenue: revenue, pendingOrders: pending }));
-                }
-
                 if (user.role === 'admin') {
-                    const usersRes = await fetch('/api/admin/users', {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (usersRes.ok) {
-                        const usersData = await usersRes.json();
-                        setUsers(usersData.users || []);
-                        setStats((prev) => ({ ...prev, totalUsers: usersData.total || 0 }));
-                    }
-
-                    const productsRes = await fetch('/api/admin/products', {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (productsRes.ok) {
-                        const productsData = await productsRes.json();
-                        setProducts(productsData.products || []);
-                    }
-
-                    const inventoryRes = await fetch('/api/admin/inventory', {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (inventoryRes.ok) {
-                        const inventoryData = await inventoryRes.json();
-                        setInventoryLots(inventoryData.lots || []);
-                    }
+                    await Promise.all([
+                        fetchOrders(token, false),
+                        fetchUsers(token),
+                        fetchProducts(token, ''),
+                        fetchInventoryLots(token, ''),
+                    ]);
+                } else {
+                    await fetchOrders(token, false);
                 }
             } catch (error) {
                 console.error('Failed to load operations data:', error);
@@ -238,10 +204,14 @@ export default function AdminPage() {
         };
 
         loadInitialData();
+    }, [token, user, fetchOrders, fetchUsers, fetchProducts, fetchInventoryLots]);
+
+    useEffect(() => {
+        if (!user) return;
         if (user.role !== 'admin' && ['users', 'products', 'articles'].includes(activeTab)) {
             setActiveTab('orders');
         }
-    }, [token, user, activeTab]);
+    }, [user, activeTab]);
 
     useEffect(() => {
         if (!token || user?.role !== 'admin') return undefined;

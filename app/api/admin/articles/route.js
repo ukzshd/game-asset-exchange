@@ -21,12 +21,27 @@ function sanitizeArticleInput(body) {
 export async function GET(request) {
     try {
         await requireAdmin(request);
+        const { searchParams } = new URL(request.url);
+        const search = cleanText(searchParams.get('search') || '', 120);
         const db = await getDb();
+        const params = [];
+        let where = '';
+        if (search) {
+            where = `
+                WHERE slug LIKE ?
+                   OR title LIKE ?
+                   OR excerpt LIKE ?
+                   OR category LIKE ?
+                   OR game_slug LIKE ?
+            `;
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
         const articles = await db.prepare(`
             SELECT *
             FROM content_articles
+            ${where}
             ORDER BY published_at DESC, created_at DESC
-        `).all();
+        `).all(...params);
         return NextResponse.json({ articles });
     } catch (error) {
         if (error instanceof Response) return error;

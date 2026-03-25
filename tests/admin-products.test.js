@@ -122,4 +122,87 @@ describe('admin product management', () => {
         const deletePayload = await deleteResponse.json();
         expect(deletePayload.success).toBe(true);
     });
+
+    it('does not overwrite multi-lot inventory when editing non-inventory product fields', async () => {
+        const { token } = await createUser({ email: 'admin-multilot@example.com', username: 'adminmultilot', role: 'admin' });
+        const { POST } = await import('@/app/api/admin/products/route');
+        const { PUT } = await import('@/app/api/admin/products/[id]/route');
+        const { getDb } = await import('@/lib/db');
+
+        const createResponse = await POST(new Request('http://localhost:3000/api/admin/products', {
+            method: 'POST',
+            headers: authHeaders(token),
+            body: JSON.stringify({
+                externalId: 'arc-multi-lot',
+                gameSlug: 'arc-raiders',
+                category: 'Items',
+                subCategory: 'Materials',
+                platform: 'PC',
+                serverRegion: 'US',
+                rarity: 'Rare',
+                name: 'Multi Lot Bundle',
+                description: 'Primary product',
+                deliveryNote: 'Original note',
+                packageLabel: 'Bundle',
+                packageSize: '1',
+                packageUnit: 'bundle',
+                price: '10.00',
+                originalPrice: '12.00',
+                discount: '0',
+                stockQuantity: '5',
+                inStock: true,
+            }),
+        }));
+        expect(createResponse.status).toBe(201);
+        const { product } = await createResponse.json();
+
+        const db = await getDb();
+        await db.prepare(`
+            INSERT INTO inventory_lots (sku_id, source_type, source_ref, available_quantity, reserved_quantity, unit_cost, note)
+            VALUES (?, 'supplier', 'LOT-SECOND', 4, 0, 0, 'Second lot')
+        `).run(product.sku_id);
+        const { recomputeInventoryAggregates } = await import('@/lib/inventory');
+        await recomputeInventoryAggregates(db, product.sku_id, product.id);
+
+        const updateResponse = await PUT(new Request(`http://localhost:3000/api/admin/products/${product.id}`, {
+            method: 'PUT',
+            headers: authHeaders(token),
+            body: JSON.stringify({
+                externalId: 'arc-multi-lot',
+                gameSlug: 'arc-raiders',
+                category: 'Items',
+                subCategory: 'Materials',
+                platform: 'PC',
+                serverRegion: 'EU',
+                rarity: 'Epic',
+                name: 'Multi Lot Bundle Updated',
+                description: 'Updated non-inventory fields',
+                deliveryNote: 'Updated note',
+                packageLabel: 'Bundle Updated',
+                packageSize: '1',
+                packageUnit: 'bundle',
+                price: '15.00',
+                originalPrice: '17.00',
+                discount: '5',
+                stockQuantity: '99',
+                inStock: true,
+            }),
+        }), {
+            params: Promise.resolve({ id: String(product.id) }),
+        });
+
+        expect(updateResponse.status).toBe(200);
+        const lots = await db.prepare(`
+            SELECT available_quantity
+            FROM inventory_lots
+            WHERE sku_id = ?
+            ORDER BY id ASC
+        `).all(product.sku_id);
+        expect(lots.map((lot) => lot.available_quantity)).toEqual([5, 4]);
+
+        const updatedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = ?').get(product.id);
+        const updatedSku = await db.prepare('SELECT stock_quantity FROM product_skus WHERE id = ?').get(product.sku_id);
+        expect(updatedProduct.stock_quantity).toBe(9);
+        expect(updatedSku.stock_quantity).toBe(9);
+    });
 });

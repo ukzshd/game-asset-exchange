@@ -26,52 +26,55 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
 
-        await db.prepare(`
-            UPDATE products
-            SET external_id = ?,
-                game_slug = ?,
-                category = ?,
-                sub_category = ?,
-                name = ?,
-                description = ?,
-                platform = ?,
-                server_region = ?,
-                rarity = ?,
-                delivery_note = ?,
-                package_label = ?,
-                package_size = ?,
-                package_unit = ?,
-                price = ?,
-                original_price = ?,
-                discount = ?,
-                in_stock = ?,
-                stock_quantity = ?,
-                image = ?
-            WHERE id = ?
-        `).run(
-            input.externalId,
-            input.gameSlug,
-            input.category,
-            input.subCategory,
-            input.name,
-            input.description,
-            input.platform,
-            input.serverRegion,
-            input.rarity,
-            input.deliveryNote,
-            input.packageLabel || input.name,
-            input.packageSize,
-            input.packageUnit,
-            input.price,
-            input.originalPrice || input.price,
-            input.discount,
-            input.inStock ? 1 : 0,
-            input.stockQuantity,
-            input.image,
-            id
-        );
+        const tx = db.transaction(async () => {
+            await db.prepare(`
+                UPDATE products
+                SET external_id = ?,
+                    game_slug = ?,
+                    category = ?,
+                    sub_category = ?,
+                    name = ?,
+                    description = ?,
+                    platform = ?,
+                    server_region = ?,
+                    rarity = ?,
+                    delivery_note = ?,
+                    package_label = ?,
+                    package_size = ?,
+                    package_unit = ?,
+                    price = ?,
+                    original_price = ?,
+                    discount = ?,
+                    in_stock = ?,
+                    stock_quantity = ?,
+                    image = ?
+                WHERE id = ?
+            `).run(
+                input.externalId,
+                input.gameSlug,
+                input.category,
+                input.subCategory,
+                input.name,
+                input.description,
+                input.platform,
+                input.serverRegion,
+                input.rarity,
+                input.deliveryNote,
+                input.packageLabel || input.name,
+                input.packageSize,
+                input.packageUnit,
+                input.price,
+                input.originalPrice || input.price,
+                input.discount,
+                input.inStock ? 1 : 0,
+                input.stockQuantity,
+                input.image,
+                id
+            );
 
-        await syncNormalizedProductModel(db, id, input);
+            await syncNormalizedProductModel(db, id, input);
+        });
+        await tx();
 
         const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(id);
         return NextResponse.json({ product });
