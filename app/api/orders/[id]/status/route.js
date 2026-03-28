@@ -28,9 +28,12 @@ export async function PUT(request, { params }) {
         if (nextStatus === 'refunded' && order.payment_provider === 'stripe' && order.payment_id) {
             try {
                 const refund = await createStripeRefund(order.payment_id, {
-                    order_id: String(order.id),
-                    order_no: order.order_no,
-                    actor_user_id: String(staffUser.id),
+                    metadata: {
+                        order_id: String(order.id),
+                        order_no: order.order_no,
+                        actor_user_id: String(staffUser.id),
+                    },
+                    idempotencyKey: `refund-order-${order.id}`,
                 });
                 refundReference = refund.id || '';
             } catch (refundError) {
@@ -40,7 +43,10 @@ export async function PUT(request, { params }) {
         }
         if (nextStatus === 'refunded' && order.payment_provider === 'paypal' && order.payment_id) {
             try {
-                const refund = await createPayPalRefund(order.payment_id, { note });
+                const refund = await createPayPalRefund(order.payment_id, {
+                    note,
+                    requestId: `iggm-refund-order-${order.id}`,
+                });
                 refundReference = refund.id || '';
             } catch (refundError) {
                 console.error('PayPal refund failed:', refundError);

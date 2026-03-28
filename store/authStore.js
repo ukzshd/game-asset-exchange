@@ -2,6 +2,14 @@
 
 import { create } from 'zustand';
 
+function getStorage() {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return window.localStorage;
+}
+
 const useAuthStore = create((set, get) => ({
     user: null,
     token: null,
@@ -10,9 +18,10 @@ const useAuthStore = create((set, get) => ({
 
     // Initialize from localStorage
     init: () => {
-        if (typeof window === 'undefined') return;
-        const token = localStorage.getItem('iggm_token');
-        const userStr = localStorage.getItem('iggm_user');
+        const storage = getStorage();
+        if (!storage) return;
+        const token = storage.getItem('iggm_token');
+        const userStr = storage.getItem('iggm_user');
         if (token && userStr) {
             try {
                 const user = JSON.parse(userStr);
@@ -35,7 +44,7 @@ const useAuthStore = create((set, get) => ({
             if (res.ok) {
                 const data = await res.json();
                 set({ user: data.user });
-                localStorage.setItem('iggm_user', JSON.stringify(data.user));
+                getStorage()?.setItem('iggm_user', JSON.stringify(data.user));
             } else {
                 get().logout();
             }
@@ -58,8 +67,8 @@ const useAuthStore = create((set, get) => ({
                 return false;
             }
             set({ user: data.user, token: data.token, loading: false, error: null });
-            localStorage.setItem('iggm_token', data.token);
-            localStorage.setItem('iggm_user', JSON.stringify(data.user));
+            getStorage()?.setItem('iggm_token', data.token);
+            getStorage()?.setItem('iggm_user', JSON.stringify(data.user));
             return true;
         } catch {
             set({ loading: false, error: 'Network error' });
@@ -81,8 +90,8 @@ const useAuthStore = create((set, get) => ({
                 return false;
             }
             set({ user: data.user, token: data.token, loading: false, error: null });
-            localStorage.setItem('iggm_token', data.token);
-            localStorage.setItem('iggm_user', JSON.stringify(data.user));
+            getStorage()?.setItem('iggm_token', data.token);
+            getStorage()?.setItem('iggm_user', JSON.stringify(data.user));
             return true;
         } catch {
             set({ loading: false, error: 'Network error' });
@@ -124,8 +133,8 @@ const useAuthStore = create((set, get) => ({
                 return false;
             }
             set({ user: data.user, token, loading: false, error: null });
-            localStorage.setItem('iggm_token', token);
-            localStorage.setItem('iggm_user', JSON.stringify(data.user));
+            getStorage()?.setItem('iggm_token', token);
+            getStorage()?.setItem('iggm_user', JSON.stringify(data.user));
             return true;
         } catch {
             set({ loading: false, error: 'Network error' });
@@ -145,7 +154,7 @@ const useAuthStore = create((set, get) => ({
             const data = await res.json();
             if (res.ok) {
                 set({ user: data.user });
-                localStorage.setItem('iggm_user', JSON.stringify(data.user));
+                getStorage()?.setItem('iggm_user', JSON.stringify(data.user));
                 return true;
             }
             return false;
@@ -171,8 +180,8 @@ const useAuthStore = create((set, get) => ({
 
     logout: () => {
         set({ user: null, token: null, error: null });
-        localStorage.removeItem('iggm_token');
-        localStorage.removeItem('iggm_user');
+        getStorage()?.removeItem('iggm_token');
+        getStorage()?.removeItem('iggm_user');
     },
 
     isLoggedIn: () => !!get().token,

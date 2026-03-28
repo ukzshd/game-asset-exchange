@@ -28,13 +28,17 @@ vi.mock('@/lib/payments/stripe', () => ({
     createStripeRefund: vi.fn(async () => stripeState.refund),
 }));
 
-vi.mock('@/lib/payments/paypal', () => ({
-    createPayPalOrder: vi.fn(async () => paypalState.createdOrder),
-    getPayPalOrder: vi.fn(async () => paypalState.retrievedOrder),
-    capturePayPalOrder: vi.fn(async () => paypalState.capturedOrder),
-    createPayPalRefund: vi.fn(async () => paypalState.refund),
-    verifyPayPalWebhookEvent: vi.fn(async () => paypalState.webhookVerified),
-}));
+vi.mock('@/lib/payments/paypal', async () => {
+    const actual = await vi.importActual('@/lib/payments/paypal');
+    return {
+        ...actual,
+        createPayPalOrder: vi.fn(async () => paypalState.createdOrder),
+        getPayPalOrder: vi.fn(async () => paypalState.retrievedOrder),
+        capturePayPalOrder: vi.fn(async () => paypalState.capturedOrder),
+        createPayPalRefund: vi.fn(async () => paypalState.refund),
+        verifyPayPalWebhookEvent: vi.fn(async () => paypalState.webhookVerified),
+    };
+});
 
 describe('order and payment flow', () => {
     let temp;
@@ -62,7 +66,14 @@ describe('order and payment flow', () => {
         paypalState.retrievedOrder = {
             id: 'PAYPAL-ORDER-123',
             status: 'APPROVED',
-            purchase_units: [{ custom_id: '1', reference_id: '1' }],
+            purchase_units: [{
+                custom_id: '1',
+                reference_id: '1',
+                amount: {
+                    currency_code: 'USD',
+                    value: '0.00',
+                },
+            }],
         };
         paypalState.capturedOrder = {
             id: 'PAYPAL-ORDER-123',
@@ -70,8 +81,19 @@ describe('order and payment flow', () => {
             purchase_units: [{
                 reference_id: '1',
                 custom_id: '1',
+                amount: {
+                    currency_code: 'USD',
+                    value: '0.00',
+                },
                 payments: {
-                    captures: [{ id: 'CAPTURE-123', status: 'COMPLETED' }],
+                    captures: [{
+                        id: 'CAPTURE-123',
+                        status: 'COMPLETED',
+                        amount: {
+                            currency_code: 'USD',
+                            value: '0.00',
+                        },
+                    }],
                 },
             }],
         };
@@ -81,6 +103,7 @@ describe('order and payment flow', () => {
     });
 
     afterEach(async () => {
+        vi.doUnmock('@/lib/auth');
         await cleanupIsolatedDb(temp);
     });
 
@@ -145,6 +168,58 @@ describe('order and payment flow', () => {
 
         const logs = await db.prepare('SELECT event_type FROM order_status_logs WHERE order_id = ? ORDER BY id ASC').all(orderPayload.order.id);
         expect(logs.map((entry) => entry.event_type)).toEqual(['created', 'payment_session_created']);
+    });
+
+    it('retries order creation when a generated order number collides', async () => {
+        vi.doMock('@/lib/auth', async () => {
+            const actual = await vi.importActual('@/lib/auth');
+            let attempts = 0;
+            return {
+                ...actual,
+                generateOrderNo: vi.fn(() => {
+                    attempts += 1;
+                    if (attempts < 3) return 'ORD-STATIC-COLLISION';
+                    return 'ORD-UNIQUE-RECOVERED';
+                }),
+            };
+        });
+
+        const { token } = await createUser({ email: 'collision@example.com', username: 'collision' });
+        const { POST: createOrder } = await import('@/app/api/orders/route');
+        const { getDb } = await import('@/lib/db');
+
+        const firstResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(token),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 1, name: 'Bundle' }],
+                embarkId: 'collision#1',
+                characterName: 'CollisionOne',
+                email: 'collision@example.com',
+                paymentMethod: 'stripe',
+            }),
+        }));
+        expect(firstResponse.status).toBe(201);
+
+        const secondResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(token),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 1, name: 'Bundle' }],
+                embarkId: 'collision#2',
+                characterName: 'CollisionTwo',
+                email: 'collision@example.com',
+                paymentMethod: 'stripe',
+            }),
+        }));
+        expect(secondResponse.status).toBe(201);
+
+        const secondPayload = await secondResponse.json();
+        expect(secondPayload.order.order_no).toBe('ORD-UNIQUE-RECOVERED');
+
+        const db = await getDb();
+        const orders = await db.prepare('SELECT order_no FROM orders ORDER BY id ASC').all();
+        expect(orders.map((entry) => entry.order_no)).toEqual(['ORD-STATIC-COLLISION', 'ORD-UNIQUE-RECOVERED']);
     });
 
     it('confirms payment, assigns an order, and progresses workflow statuses', async () => {
@@ -250,6 +325,7 @@ describe('order and payment flow', () => {
         const { POST: createOrder } = await import('@/app/api/orders/route');
         const { PUT: updateStatus } = await import('@/app/api/orders/[id]/status/route');
         const { getDb } = await import('@/lib/db');
+        const stripePayments = await import('@/lib/payments/stripe');
 
         const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
             method: 'POST',
@@ -285,6 +361,15 @@ describe('order and payment flow', () => {
         expect(updatedOrder.status).toBe('refunded');
         expect(updatedOrder.payment_status).toBe('refunded');
         expect(updatedOrder.payment_reference).toBe('re_test_123');
+        expect(stripeState.refund).toEqual({ id: 're_test_123', status: 'succeeded' });
+        expect(stripePayments.createStripeRefund).toHaveBeenCalledWith('pi_paid_refund', {
+            metadata: {
+                order_id: String(order.id),
+                order_no: order.order_no,
+                actor_user_id: '2',
+            },
+            idempotencyKey: `refund-order-${order.id}`,
+        });
 
         const refundedProduct = await db.prepare('SELECT stock_quantity FROM products WHERE id = 1').get();
         expect(refundedProduct.stock_quantity).toBeGreaterThanOrEqual(1000);
@@ -298,6 +383,7 @@ describe('order and payment flow', () => {
         const { POST: confirmPayment } = await import('@/app/api/payments/confirm/route');
         const { PUT: updateStatus } = await import('@/app/api/orders/[id]/status/route');
         const { getDb } = await import('@/lib/db');
+        const paypalPayments = await import('@/lib/payments/paypal');
 
         const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
             method: 'POST',
@@ -312,11 +398,15 @@ describe('order and payment flow', () => {
             }),
         }));
         const { order } = await orderResponse.json();
+        const orderTotal = Number(order.total || 0).toFixed(2);
 
         paypalState.retrievedOrder.purchase_units[0].custom_id = String(order.id);
         paypalState.retrievedOrder.purchase_units[0].reference_id = String(order.id);
+        paypalState.retrievedOrder.purchase_units[0].amount.value = orderTotal;
         paypalState.capturedOrder.purchase_units[0].custom_id = String(order.id);
         paypalState.capturedOrder.purchase_units[0].reference_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].amount.value = orderTotal;
+        paypalState.capturedOrder.purchase_units[0].payments.captures[0].amount.value = orderTotal;
 
         const paymentResponse = await createPayment(new Request('http://localhost:3000/api/payments/create', {
             method: 'POST',
@@ -357,6 +447,47 @@ describe('order and payment flow', () => {
         const refundedOrder = await db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
         expect(refundedOrder.status).toBe('refunded');
         expect(refundedOrder.payment_reference).toBe('R-123');
+        expect(paypalPayments.createPayPalRefund).toHaveBeenCalledWith('CAPTURE-123', {
+            note: 'PayPal refund requested',
+            requestId: `iggm-refund-order-${order.id}`,
+        });
+    });
+
+    it('rejects PayPal payment confirmation when the captured amount does not match the order total', async () => {
+        const { token: buyerToken } = await createUser({ email: 'paypalmismatch@example.com', username: 'paypalmismatch' });
+        const { POST: createOrder } = await import('@/app/api/orders/route');
+        const { POST: confirmPayment } = await import('@/app/api/payments/confirm/route');
+
+        const orderResponse = await createOrder(new Request('http://localhost:3000/api/orders', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({
+                items: [{ productId: 1, quantity: 1, name: 'Bundle' }],
+                embarkId: 'paypal#mismatch',
+                characterName: 'MismatchBuyer',
+                email: 'paypalmismatch@example.com',
+                paymentMethod: 'paypal',
+                currency: 'USD',
+            }),
+        }));
+        const { order } = await orderResponse.json();
+
+        paypalState.retrievedOrder.purchase_units[0].custom_id = String(order.id);
+        paypalState.retrievedOrder.purchase_units[0].reference_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].custom_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].reference_id = String(order.id);
+        paypalState.capturedOrder.purchase_units[0].amount.value = '0.01';
+        paypalState.capturedOrder.purchase_units[0].payments.captures[0].amount.value = '0.01';
+
+        const confirmResponse = await confirmPayment(new Request('http://localhost:3000/api/payments/confirm', {
+            method: 'POST',
+            headers: authHeaders(buyerToken),
+            body: JSON.stringify({ orderId: order.id, sessionId: 'PAYPAL-ORDER-123', paymentMethod: 'paypal' }),
+        }));
+
+        expect(confirmResponse.status).toBe(400);
+        const payload = await confirmResponse.json();
+        expect(payload.error).toContain('amount does not match');
     });
 
     it('allocates inventory across multiple lots and restores the same lots on refund', async () => {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { ORDER_STATUS, setOrderStatus } from '@/lib/orders';
 import { sendOpsNotification } from '@/lib/notifications';
-import { verifyPayPalWebhookEvent } from '@/lib/payments/paypal';
+import { isPayPalAmountValidForOrder, verifyPayPalWebhookEvent } from '@/lib/payments/paypal';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +43,11 @@ export async function POST(request) {
         }
 
         if (eventType === 'PAYMENT.CAPTURE.COMPLETED' && order.status === ORDER_STATUS.PENDING_PAYMENT) {
+            if (!isPayPalAmountValidForOrder(order, resource.amount)) {
+                console.warn(`PayPal webhook amount mismatch for order ${order.id}`);
+                return NextResponse.json({ received: true, ignored: true, amountMismatch: true });
+            }
+
             const captureId = resource.id || '';
             const sessionId = resource.supplementary_data?.related_ids?.order_id || order.payment_session_id || '';
 

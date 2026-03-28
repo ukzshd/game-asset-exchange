@@ -21,7 +21,12 @@ export async function POST(request) {
         }
 
         const db = await getDb();
-        const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        const user = await db.prepare(`
+            SELECT id, email, password_hash, username, avatar_url, google_id, discord_id, steam_id,
+                   role, embark_id, phone, referral_code, referred_by, is_active, created_at
+            FROM users
+            WHERE email = ?
+        `).get(email);
 
         if (!user || user.is_active === 0) {
             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });

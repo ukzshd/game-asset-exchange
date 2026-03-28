@@ -1,9 +1,17 @@
 export async function setupIsolatedDb() {
+    const previousEnv = {
+        DATABASE_URL: process.env.DATABASE_URL,
+        JWT_SECRET: process.env.JWT_SECRET,
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        BCRYPT_ROUNDS: process.env.BCRYPT_ROUNDS,
+    };
+
     process.env.DATABASE_URL = 'pg-mem';
     process.env.JWT_SECRET = 'test-jwt-secret';
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
+    process.env.BCRYPT_ROUNDS = '4';
     await resetDbModule();
-    return { databaseUrl: 'pg-mem' };
+    return { databaseUrl: 'pg-mem', previousEnv };
 }
 
 export async function resetDbModule() {
@@ -11,9 +19,33 @@ export async function resetDbModule() {
     await dbModule.closeDb();
 }
 
-export async function cleanupIsolatedDb() {
+export async function cleanupIsolatedDb(context = {}) {
     await resetDbModule();
-    delete process.env.DATABASE_URL;
+    const previousEnv = context.previousEnv || {};
+
+    if (previousEnv.DATABASE_URL === undefined) {
+        delete process.env.DATABASE_URL;
+    } else {
+        process.env.DATABASE_URL = previousEnv.DATABASE_URL;
+    }
+
+    if (previousEnv.JWT_SECRET === undefined) {
+        delete process.env.JWT_SECRET;
+    } else {
+        process.env.JWT_SECRET = previousEnv.JWT_SECRET;
+    }
+
+    if (previousEnv.NEXT_PUBLIC_APP_URL === undefined) {
+        delete process.env.NEXT_PUBLIC_APP_URL;
+    } else {
+        process.env.NEXT_PUBLIC_APP_URL = previousEnv.NEXT_PUBLIC_APP_URL;
+    }
+
+    if (previousEnv.BCRYPT_ROUNDS === undefined) {
+        delete process.env.BCRYPT_ROUNDS;
+    } else {
+        process.env.BCRYPT_ROUNDS = previousEnv.BCRYPT_ROUNDS;
+    }
 }
 
 export async function createUser({

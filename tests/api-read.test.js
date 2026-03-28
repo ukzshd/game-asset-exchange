@@ -81,4 +81,23 @@ describe('read-only API routes and origin protection', () => {
         const payload = await response.json();
         expect(payload.error).toContain('Cross-site request rejected');
     });
+
+    it('rejects state-changing requests that omit origin and referer', async () => {
+        const { POST } = await import('@/app/api/auth/register/route');
+        const response = await POST(new Request('http://localhost:3000/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: 'missing-origin@example.com',
+                password: 'password123',
+                username: 'missingorigin',
+            }),
+        }));
+
+        expect(response.status).toBe(403);
+        const payload = await response.json();
+        expect(payload.error).toContain('Origin or referer is required');
+    });
 });

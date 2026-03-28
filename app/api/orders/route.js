@@ -7,6 +7,22 @@ import { cleanText, cleanMultilineText, normalizeEmail, isValidEmail, sanitizeOr
 import { ORDER_STATUS, createOrderLog } from '@/lib/orders';
 import { evaluateRisk, recordRiskEvent } from '@/lib/risk';
 
+function isOrderNoConflict(error) {
+    if (!error) {
+        return false;
+    }
+
+    const details = [
+        error.code,
+        error.constraint,
+        error.detail,
+        error.message,
+    ].filter(Boolean).join(' ');
+
+    return details.includes('23505')
+        || (/unique/i.test(details) && /order_no/i.test(details));
+}
+
 export async function POST(request) {
     try {
         assertTrustedOrigin(request);
@@ -65,7 +81,6 @@ export async function POST(request) {
         }
 
         const total = subtotal - discountAmount;
-        const orderNo = generateOrderNo();
         const risk = evaluateRisk({
             total,
             itemCount: validatedItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -73,7 +88,7 @@ export async function POST(request) {
             hasReferral: Boolean(user.referred_by),
         });
 
-        const createOrder = db.transaction(async () => {
+        const createOrder = db.transaction(async (orderNo) => {
             const result = await db.prepare(`
                 INSERT INTO orders (
                     order_no, user_id, total, currency, status, embark_id, character_name,
@@ -94,7 +109,7 @@ export async function POST(request) {
                 deliveryPlatform,
                 deliveryServer,
                 paymentMethod,
-                paymentMethod === 'stripe' ? 'stripe' : paymentMethod,
+                paymentMethod,
                 'unpaid',
                 couponCode,
                 discountAmount,
@@ -147,7 +162,24 @@ export async function POST(request) {
             return orderId;
         });
 
-        const orderId = await createOrder();
+        let orderId = null;
+        let lastOrderNoError = null;
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            try {
+                orderId = await createOrder(generateOrderNo());
+                break;
+            } catch (error) {
+                if (!isOrderNoConflict(error)) {
+                    throw error;
+                }
+                lastOrderNoError = error;
+            }
+        }
+
+        if (!orderId) {
+            throw lastOrderNoError || new Error('Failed to generate a unique order number');
+        }
+
         const order = await db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
         const orderItems = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
 

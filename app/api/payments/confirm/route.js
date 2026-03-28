@@ -3,7 +3,12 @@ import { getDb } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 import { ORDER_STATUS, setOrderStatus } from '@/lib/orders';
 import { getStripeClient } from '@/lib/payments/stripe';
-import { capturePayPalOrder, getPayPalOrder } from '@/lib/payments/paypal';
+import {
+    capturePayPalOrder,
+    getPayPalOrder,
+    getPayPalOrderPaymentAmount,
+    isPayPalAmountValidForOrder,
+} from '@/lib/payments/paypal';
 import { assertTrustedOrigin } from '@/lib/request-security';
 
 export const runtime = 'nodejs';
@@ -41,6 +46,10 @@ export async function POST(request) {
 
             const captureResult = paypalOrder.status === 'COMPLETED' ? paypalOrder : await capturePayPalOrder(sessionId);
             const capture = captureResult.purchase_units?.[0]?.payments?.captures?.[0];
+            const paymentAmount = getPayPalOrderPaymentAmount(captureResult);
+            if (!isPayPalAmountValidForOrder(order, paymentAmount)) {
+                return NextResponse.json({ error: 'PayPal payment amount does not match this order' }, { status: 400 });
+            }
             const isPaid = capture?.status === 'COMPLETED' || captureResult.status === 'COMPLETED';
 
             if (isPaid && order.status === ORDER_STATUS.PENDING_PAYMENT) {
