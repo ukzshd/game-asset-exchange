@@ -125,6 +125,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 页面级 metadata
 - 商品详情页 JSON-LD
 - 文章页 JSON-LD
+- `sitemap.xml` 收录商品页和已发布文章详情页
 - 动态 `robots.txt`
 - 动态 `sitemap.xml`
 
@@ -144,11 +145,20 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 后台风控事件查看
 - 可选运营 webhook 通知（支付成功时推送）
 
+### 推广与返佣
+
+- 推广页 `/affiliate`
+- 推广统计 API `/api/affiliate/stats`
+- 返佣记录 API `/api/affiliate/commissions`
+- `affiliate_commissions` 返佣表
+
 ### 商品运营模型
 
 - `product_spus`：商品主模型
 - `product_skus`：可售套餐模型
 - `inventory_lots`：库存批次模型
+- `order_inventory_reservations`：待支付阶段预留库存
+- `order_inventory_allocations`：支付完成后的实际批次分配
 - 支付成功自动扣减库存
 - 退款自动回补库存
 - 订单创建会校验可售库存
@@ -158,6 +168,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - JWT + bcrypt
 - 基础限流
 - 写接口 Origin / Referer 防护
+- 根目录 `proxy.js` 统一追加安全响应头
 - 安全响应头
 - 输入清洗与长度限制
 
@@ -288,12 +299,15 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - `inventory_lots`
 - `orders`
 - `order_items`
+- `order_inventory_allocations`
+- `order_inventory_reservations`
 - `coupons`
 - `affiliate_commissions`
 - `order_status_logs`
 - `exchange_rates`
 - `content_articles`
 - `password_reset_tokens`
+- `email_verification_codes`
 - `risk_events`
 
 ### 关键补充说明
@@ -304,9 +318,12 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - `product_skus`：具体售卖套餐，保存套餐名称、数量单位、价格、库存
 - `inventory_lots`：批次库存，当前后台支持手动新增、修改、删除，并自动汇总回 `SKU` 和兼容读模型 `products`，后续可继续扩展为人工库存池/供应来源
 - `orders`：保存支付、派单、交付、收货等字段
+- `order_inventory_reservations`：记录待支付订单占用的库存批次，便于支付失败/过期时释放
+- `order_inventory_allocations`：记录已支付订单实际消耗的库存批次，便于退款时原路回补
 - `content_articles`：存储新闻/攻略内容
 - `exchange_rates`：存储当前汇率快照
 - `password_reset_tokens`：一次性密码重置 token
+- `email_verification_codes`：邮箱验证码登录/注册流程使用的一次性验证码
 - `risk_events`：风险评分与请求环境信息
 
 ---
@@ -322,6 +339,8 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 开发和生产环境都需要 PostgreSQL。
 
 测试环境默认使用 `pg-mem`，所以跑测试时不需要手工启动 PostgreSQL。
+
+仓库中如果看到 `data/iggm.db*` 这类 SQLite 文件，可视为早期本地开发遗留；当前运行链路已经迁移到 PostgreSQL / `pg-mem`，不会读取这些文件。
 
 ---
 

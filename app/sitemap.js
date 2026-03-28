@@ -11,6 +11,7 @@ export default async function sitemap() {
     const staticRoutes = [
         '',
         '/affiliate',
+        '/news',
     ].map((path) => ({
         url: `${baseUrl}${path}`,
         lastModified: now,
@@ -39,5 +40,17 @@ export default async function sitemap() {
         priority: 0.8,
     }));
 
-    return [...staticRoutes, ...catalogRoutes, ...productRoutes];
+    const articleRoutes = await db.prepare(`
+        SELECT slug, updated_at, published_at
+        FROM content_articles
+        WHERE published = 1
+        ORDER BY published_at DESC, id DESC
+    `).all().map((article) => ({
+        url: `${baseUrl}/news/${article.slug}`,
+        lastModified: article.updated_at || article.published_at || now,
+        changeFrequency: 'weekly',
+        priority: 0.7,
+    }));
+
+    return [...staticRoutes, ...catalogRoutes, ...productRoutes, ...articleRoutes];
 }
