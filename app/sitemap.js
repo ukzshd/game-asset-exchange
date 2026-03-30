@@ -29,23 +29,25 @@ export default async function sitemap() {
         })));
 
     const db = await getDb();
-    const productRoutes = await db.prepare(`
+    const products = await db.prepare(`
         SELECT *
         FROM products
         ORDER BY game_slug ASC, id ASC
-    `).all().map((product) => ({
+    `).all();
+    const productRoutes = products.map((product) => ({
         url: `${baseUrl}/${product.game_slug}/product/${product.external_id || product.id}`,
         lastModified: product.updated_at || now,
         changeFrequency: 'daily',
         priority: 0.8,
     }));
 
-    const articleRoutes = await db.prepare(`
+    const articles = await db.prepare(`
         SELECT slug, updated_at, published_at
         FROM content_articles
         WHERE published = 1
         ORDER BY published_at DESC, id DESC
-    `).all().map((article) => ({
+    `).all();
+    const articleRoutes = articles.map((article) => ({
         url: `${baseUrl}/news/${article.slug}`,
         lastModified: article.updated_at || article.published_at || now,
         changeFrequency: 'weekly',
