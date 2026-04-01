@@ -64,11 +64,6 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <div className={styles.allGamesLink}>
-            <Link href="/all-games" className="btn btn-secondary">
-              View All Games →
-            </Link>
-          </div>
         </div>
       </section>
 

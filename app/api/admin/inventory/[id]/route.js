@@ -1,25 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { sanitizeInventoryLotInput } from '@/lib/admin-inputs';
 import { assertTrustedOrigin } from '@/lib/request-security';
-import { cleanMultilineText, cleanText } from '@/lib/validation';
 import { recomputeInventoryAggregates } from '@/lib/inventory';
-
-function sanitizeLotInput(body) {
-    return {
-        availableQuantity: Math.max(0, Number.parseInt(String(body?.availableQuantity || 0), 10) || 0),
-        sourceType: cleanText(body?.sourceType || 'manual', 32) || 'manual',
-        sourceRef: cleanText(body?.sourceRef || '', 120),
-        note: cleanMultilineText(body?.note, 500),
-    };
-}
 
 export async function PUT(request, { params }) {
     try {
         assertTrustedOrigin(request);
         await requireAdmin(request);
         const { id } = await params;
-        const input = sanitizeLotInput(await request.json());
+        const input = sanitizeInventoryLotInput(await request.json());
         const db = await getDb();
 
         const lot = await db.prepare(`

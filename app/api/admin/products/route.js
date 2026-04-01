@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getProductWriteValues, validateProductInput } from '@/lib/admin-inputs';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { assertTrustedOrigin } from '@/lib/request-security';
@@ -50,13 +51,10 @@ export async function POST(request) {
         await requireAdmin(request);
         const body = await request.json();
         const input = normalizeProductInput(body);
+        const validationError = validateProductInput(input);
 
-        if (!input.gameSlug || !input.category || !input.name) {
-            return NextResponse.json({ error: 'gameSlug, category, and name are required' }, { status: 400 });
-        }
-
-        if (input.price <= 0) {
-            return NextResponse.json({ error: 'price must be greater than 0' }, { status: 400 });
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
         }
 
         const db = await getDb();
@@ -67,27 +65,7 @@ export async function POST(request) {
                     platform, server_region, rarity, delivery_note, package_label, package_size, package_unit,
                     price, original_price, discount, in_stock, stock_quantity, image
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                input.externalId,
-                input.gameSlug,
-                input.category,
-                input.subCategory,
-                input.name,
-                input.description,
-                input.platform,
-                input.serverRegion,
-                input.rarity,
-                input.deliveryNote,
-                input.packageLabel || input.name,
-                input.packageSize,
-                input.packageUnit,
-                input.price,
-                input.originalPrice || input.price,
-                input.discount,
-                input.inStock ? 1 : 0,
-                input.stockQuantity,
-                input.image
-            );
+            `).run(...getProductWriteValues(input));
 
             await syncNormalizedProductModel(db, result.lastInsertRowid, input);
             return result.lastInsertRowid;

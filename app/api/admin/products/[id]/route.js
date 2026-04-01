@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getProductWriteValues, validateProductInput } from '@/lib/admin-inputs';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { assertTrustedOrigin } from '@/lib/request-security';
@@ -11,13 +12,10 @@ export async function PUT(request, { params }) {
         const { id } = await params;
         const body = await request.json();
         const input = normalizeProductInput(body);
+        const validationError = validateProductInput(input);
 
-        if (!input.gameSlug || !input.category || !input.name) {
-            return NextResponse.json({ error: 'gameSlug, category, and name are required' }, { status: 400 });
-        }
-
-        if (input.price <= 0) {
-            return NextResponse.json({ error: 'price must be greater than 0' }, { status: 400 });
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
         }
 
         const db = await getDb();
@@ -49,28 +47,7 @@ export async function PUT(request, { params }) {
                     stock_quantity = ?,
                     image = ?
                 WHERE id = ?
-            `).run(
-                input.externalId,
-                input.gameSlug,
-                input.category,
-                input.subCategory,
-                input.name,
-                input.description,
-                input.platform,
-                input.serverRegion,
-                input.rarity,
-                input.deliveryNote,
-                input.packageLabel || input.name,
-                input.packageSize,
-                input.packageUnit,
-                input.price,
-                input.originalPrice || input.price,
-                input.discount,
-                input.inStock ? 1 : 0,
-                input.stockQuantity,
-                input.image,
-                id
-            );
+            `).run(...getProductWriteValues(input), id);
 
             await syncNormalizedProductModel(db, id, input);
         });

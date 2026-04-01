@@ -148,10 +148,6 @@ export default function GameCategoryClient({ gameSlug, categorySlug }) {
                         <span className={styles.pillIcon}>🎁</span>
                         <span>Giveaway</span>
                     </Link>
-                    <Link href="/sell-to-us" className={styles.pill}>
-                        <span className={styles.pillIcon}>💸</span>
-                        <span>Sell To Us</span>
-                    </Link>
                     <Link href="/news" className={styles.pill}>
                         <span className={styles.pillIcon}>📰</span>
                         <span>News</span>

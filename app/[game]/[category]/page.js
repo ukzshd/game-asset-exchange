@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
+import { getGameBySlug, getGameCategory } from '@/lib/catalog-shared';
 import { getAppUrl } from '@/lib/env';
-import { getGameBySlug, getGameCategory } from '@/lib/catalog';
 import GameCategoryClient from './GameCategoryClient';
 
 export async function generateMetadata({ params }) {

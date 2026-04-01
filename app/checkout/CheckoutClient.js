@@ -265,7 +265,7 @@ export default function CheckoutPage() {
                                     <div className={styles.termsRow}>
                                         <label className={styles.checkbox}>
                                             <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} />
-                                            <span>I agree to the <Link href="/terms">Terms and Conditions</Link> and <Link href="/privacy-policy">Privacy Policy</Link></span>
+                                            <span>I agree to the Terms and Conditions and Privacy Policy.</span>
                                         </label>
                                     </div>
 

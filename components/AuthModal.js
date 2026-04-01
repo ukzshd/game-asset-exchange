@@ -221,7 +221,7 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
                         <div className={styles.terms}>
                             <label className={styles.checkboxLabel}>
                                 <input type="checkbox" required />
-                                <span>I agree to the <Link href="/terms">Terms and conditions</Link> and <Link href="/privacy-policy">Privacy Policy</Link></span>
+                                <span>I agree to the Terms and Conditions and Privacy Policy.</span>
                             </label>
                         </div>
                     )}

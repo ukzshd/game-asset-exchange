@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
+import { getGameBySlug, getProductIcon, getProductPath } from '@/lib/catalog-shared';
 import { getAppUrl } from '@/lib/env';
-import { getGameBySlug, getProductByGameAndIdentifier, getProductIcon, getProductPath, getRelatedProducts } from '@/lib/catalog';
+import { getProductByGameAndIdentifier, getRelatedProducts } from '@/lib/product-model';
 import ProductDetailClient from './ProductDetailClient';
 import styles from './page.module.css';
 

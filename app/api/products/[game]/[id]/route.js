@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProductByGameAndIdentifier, getRelatedProducts } from '@/lib/catalog';
+import { getProductByGameAndIdentifier, getRelatedProducts } from '@/lib/product-model';
 
 export async function GET(_request, { params }) {
     try {

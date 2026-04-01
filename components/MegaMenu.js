@@ -35,9 +35,6 @@ export default function MegaMenu({ onClose }) {
                             </Link>
                         ))}
                     </div>
-                    <Link href="/all-games" className={styles.allGamesLink} onClick={onClose}>
-                        All Games &gt;&gt;
-                    </Link>
                 </div>
             </div>
         </>

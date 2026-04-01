@@ -21,7 +21,6 @@ export default function Header() {
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
     const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-    const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [showMegaMenu, setShowMegaMenu] = useState(false);
     const [showCart, setShowCart] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
@@ -30,10 +29,9 @@ export default function Header() {
     const mounted = useHydrated();
 
     const currencyRef = useRef(null);
-    const languageRef = useRef(null);
     const searchRef = useRef(null);
 
-    const { currency, currencies, setCurrency, getCurrentCurrency } = useCurrencyStore();
+    const { currency, currencies, setCurrency } = useCurrencyStore();
     const { language, languages, setLanguage, t, initTranslations, isLoaded } = useLanguageStore();
     const getItemCount = useCartStore(state => state.getItemCount);
     const { user, init: initAuth, logout } = useAuthStore();
@@ -54,9 +52,6 @@ export default function Header() {
         const handleClickOutside = (e) => {
             if (currencyRef.current && !currencyRef.current.contains(e.target)) {
                 setShowCurrencyDropdown(false);
-            }
-            if (languageRef.current && !languageRef.current.contains(e.target)) {
-                setShowLanguageDropdown(false);
             }
             if (searchRef.current && !searchRef.current.contains(e.target)) {
                 setShowSearchResults(false);
@@ -105,7 +100,6 @@ export default function Header() {
         };
     }, [searchQuery]);
 
-    const currentCurrency = getCurrentCurrency();
     const currentLang = languages.find(l => l.code === language) || languages[0];
 
     const handleSearch = (e) => {
@@ -212,7 +206,6 @@ export default function Header() {
                                     className={styles.dropdownTrigger}
                                     onClick={() => {
                                         setShowCurrencyDropdown(!showCurrencyDropdown);
-                                        setShowLanguageDropdown(false);
                                     }}
                                 >
                                     <span className={styles.flagIcon}>🇺🇸</span>
@@ -325,38 +318,30 @@ export default function Header() {
                             <span>{isLoaded ? t('nav.chooseGame') : 'CHOOSE YOUR GAME'}</span>
                         </button>
                         <div className={styles.navLinks}>
-                            <Link href="/help-center" className={styles.navLink}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                                    <path d="M12 17h.01" />
-                                </svg>
-                                {isLoaded ? t('nav.helpCenter') : 'Help Center'}
-                            </Link>
                             <Link href="/affiliate" className={styles.navLink}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                                 </svg>
                                 {isLoaded ? t('nav.affiliate') : 'Affiliate'}
                             </Link>
-                            <Link href="/vip" className={styles.navLink}>
+                            <Link href="/news" className={styles.navLink}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                    <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20" />
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+                                    <path d="M8 7h8" />
+                                    <path d="M8 11h8" />
+                                    <path d="M8 15h5" />
                                 </svg>
-                                {isLoaded ? t('nav.memberDiscount') : 'Member Discount'}
+                                News
                             </Link>
-                            <Link href="/sell-to-us" className={styles.navLink}>
+                            <Link href="/dashboard" className={styles.navLink}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                    <path d="M3 13h8V3H3z" />
+                                    <path d="M13 21h8v-6h-8z" />
+                                    <path d="M13 3h8v6h-8z" />
+                                    <path d="M3 21h8v-6H3z" />
                                 </svg>
-                                {isLoaded ? t('nav.sellToUs') : 'Sell To Us'}
-                            </Link>
-                            <Link href="/contact-us" className={styles.navLink}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                    <polyline points="22,6 12,13 2,6" />
-                                </svg>
-                                {isLoaded ? t('nav.contactUs') : 'Contact Us'}
+                                Dashboard
                             </Link>
                         </div>
                     </div>

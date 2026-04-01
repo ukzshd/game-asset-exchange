@@ -1,22 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { sanitizeArticleInput } from '@/lib/admin-inputs';
 import { assertTrustedOrigin } from '@/lib/request-security';
-import { cleanMultilineText, cleanText } from '@/lib/validation';
-
-function sanitizeArticleInput(body) {
-    const published = body?.published === false || body?.published === 0 || body?.published === '0' ? 0 : 1;
-    return {
-        slug: cleanText(body?.slug, 140),
-        title: cleanText(body?.title, 180),
-        excerpt: cleanText(body?.excerpt, 320),
-        content: cleanMultilineText(body?.content, 12000),
-        coverImage: cleanText(body?.coverImage, 255),
-        category: cleanText(body?.category || 'guides', 64),
-        gameSlug: cleanText(body?.gameSlug, 64),
-        published,
-    };
-}
 
 export async function PUT(request, { params }) {
     try {

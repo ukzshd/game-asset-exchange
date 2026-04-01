@@ -1,25 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { sanitizeInventoryLotInput } from '@/lib/admin-inputs';
 import { assertTrustedOrigin } from '@/lib/request-security';
-import { cleanMultilineText, cleanText } from '@/lib/validation';
+import { cleanText } from '@/lib/validation';
 import { recomputeInventoryAggregates } from '@/lib/inventory';
-
-function sanitizeLotInput(body) {
-    const productId = Number.parseInt(String(body?.productId || 0), 10);
-    const availableQuantity = Math.max(0, Number.parseInt(String(body?.availableQuantity || 0), 10) || 0);
-    const sourceType = cleanText(body?.sourceType || 'manual', 32) || 'manual';
-    const sourceRef = cleanText(body?.sourceRef || '', 120);
-    const note = cleanMultilineText(body?.note, 500);
-
-    return {
-        productId,
-        availableQuantity,
-        sourceType,
-        sourceRef,
-        note,
-    };
-}
 
 export async function GET(request) {
     try {
@@ -71,7 +56,7 @@ export async function POST(request) {
     try {
         assertTrustedOrigin(request);
         await requireAdmin(request);
-        const input = sanitizeLotInput(await request.json());
+        const input = sanitizeInventoryLotInput(await request.json(), { includeProductId: true });
         if (!input.productId) {
             return NextResponse.json({ error: 'productId is required' }, { status: 400 });
         }

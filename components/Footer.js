@@ -1,7 +1,15 @@
 import Link from 'next/link';
+import gamesData from '@/data/games.json';
 import styles from './Footer.module.css';
 
 export default function Footer() {
+    const activeGames = gamesData.filter((game) => game.active);
+    const splitIndex = Math.ceil(activeGames.length / 2);
+    const gameColumns = [
+        activeGames.slice(0, splitIndex),
+        activeGames.slice(splitIndex),
+    ];
+
     return (
         <footer className={styles.footer}>
             <div className={`container ${styles.content}`}>
@@ -18,46 +26,44 @@ export default function Footer() {
                     </p>
                 </div>
 
-                {/* IGGM Links */}
+                {/* Quick Links */}
                 <div className={styles.column}>
-                    <h4 className={styles.columnTitle}>IGGM</h4>
+                    <h4 className={styles.columnTitle}>Quick Links</h4>
                     <nav className={styles.columnLinks}>
-                        <Link href="/about-us">About Us</Link>
-                        <Link href="/aup-policy">AUP Policy</Link>
-                        <Link href="/terms">Terms & Conditions</Link>
-                        <Link href="/privacy-policy">Privacy Policy</Link>
-                        <Link href="/refund-policy">Refund Policy</Link>
-                        <Link href="/aml-policy">AML Policy</Link>
-                        <Link href="/coupon">Coupon Center</Link>
+                        <Link href="/">Home</Link>
+                        <Link href="/affiliate">Affiliate</Link>
                         <Link href="/news">News</Link>
+                        <Link href="/cart">Cart</Link>
                     </nav>
                 </div>
 
-                {/* Products Column 1 */}
+                {/* Games Column 1 */}
                 <div className={styles.column}>
-                    <h4 className={styles.columnTitle}>Our Products</h4>
+                    <h4 className={styles.columnTitle}>Games</h4>
                     <nav className={styles.columnLinks}>
-                        <Link href="/poe-2-currency/currency">POE 2 Currency</Link>
-                        <Link href="/diablo-4/gold">Diablo 4 Gold</Link>
-                        <Link href="/arc-raiders/items">ARC Raiders Items</Link>
-                        <Link href="/monopoly-go/partners">Monopoly Go Partners</Link>
-                        <Link href="/monopoly-go/racers">Monopoly Go Racers</Link>
-                        <Link href="/steal-a-brainrot/items">Steal a Brainrot Brainrots</Link>
-                        <Link href="/fc-26-coins/coins">FC 26 Coins</Link>
+                        {gameColumns[0].map((game) => (
+                            <Link
+                                key={game.slug}
+                                href={`/${game.slug}/${game.categories[0]?.slug || 'items'}`}
+                            >
+                                {game.name}
+                            </Link>
+                        ))}
                     </nav>
                 </div>
 
-                {/* Products Column 2 */}
+                {/* Games Column 2 */}
                 <div className={styles.column}>
                     <h4 className={styles.columnTitle}>&nbsp;</h4>
                     <nav className={styles.columnLinks}>
-                        <Link href="/poe-currency/currency">POE Currency</Link>
-                        <Link href="/diablo-4/items">Diablo 4 Items</Link>
-                        <Link href="/arc-raiders/items">ARC Raiders BluePrints</Link>
-                        <Link href="/monopoly-go/stickers">Monopoly Go Stickers</Link>
-                        <Link href="/wow-classic/gold">WoW Midnight Gold</Link>
-                        <Link href="/wow-classic/gold">WoW TBC Anniversary Gold</Link>
-                        <Link href="/d2-resurrected-items/items">Diablo 2 Resurrected Items</Link>
+                        {gameColumns[1].map((game) => (
+                            <Link
+                                key={game.slug}
+                                href={`/${game.slug}/${game.categories[0]?.slug || 'items'}`}
+                            >
+                                {game.name}
+                            </Link>
+                        ))}
                     </nav>
                 </div>
 

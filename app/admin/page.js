@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import gamesData from '@/data/games.json';
+import { STAFF_ROLES } from '@/lib/orders';
 import useAuthStore from '@/store/authStore';
 import useHydrated from '@/lib/useHydrated';
 import styles from './page.module.css';
 
-const STAFF_ROLES = new Set(['admin', 'support', 'worker']);
 const EMPTY_PRODUCT = {
     id: null,
     externalId: '',
