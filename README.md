@@ -49,7 +49,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 实时客服机器人（Slack / Discord / 企微等）
 - 更高级的设备指纹和支付风控
 - 真正的内容工作流 CMS（当前是轻量后台文章管理）
-- 多仓、多供应商分单、锁库等更复杂的库存池模型
+- 多仓、多供应商分单、跨仓锁库等更复杂的库存池模型
 
 也就是说，仓库里“本地可以持续开发并落地验证”的高价值部分，已经补到了较完整的程度；剩余缺口主要依赖第三方平台能力或更重的运营系统扩展。
 
@@ -70,6 +70,7 @@ English summary: this repository is a Next.js 16 full-stack marketplace prototyp
 - 新闻/攻略列表页 `/news`
 - 新闻/攻略详情页 `/news/[slug]`
 - 忘记密码页 `/forgot-password`
+- OAuth 回调页 `/auth/callback`
 - Header 即时搜索结果
 
 ### 用户与认证
@@ -400,6 +401,7 @@ psql "$DATABASE_URL" -c "SELECT NOW();"
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/game_asset_exchange
 JWT_SECRET=replace-with-a-long-random-secret
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+# APP_URL=http://localhost:3000
 
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
@@ -428,7 +430,7 @@ EXCHANGE_RATE_API_URL=https://open.er-api.com/v6/latest/USD
 
 - `DATABASE_URL`
 - `JWT_SECRET`
-- `NEXT_PUBLIC_APP_URL`
+- 站点 URL 建议至少配置 `NEXT_PUBLIC_APP_URL` 或 `APP_URL` 其中之一
 
 ### Stripe 必填（真实支付时）
 
@@ -472,6 +474,14 @@ EXCHANGE_RATE_API_URL=https://open.er-api.com/v6/latest/USD
 
 - `OPS_WEBHOOK_URL`：支付成功后推送运营通知
 - `EXCHANGE_RATE_API_URL`：覆盖默认汇率源
+
+### 站点 URL 读取说明
+
+- 通用页面 metadata、`sitemap.xml`、`robots.txt`、OAuth 回调和支付回跳等逻辑，当前会优先读取 `NEXT_PUBLIC_APP_URL`，其次读取 `APP_URL`
+- 如果两者都未配置，请求链路会尽量退回当前请求的 host；在缺少请求上下文的场景下会退回 `http://localhost:3000`
+- 推广统计接口 `/api/affiliate/stats` 当前返回 `referral_link` 时额外读取 `NEXT_PUBLIC_BASE_URL`
+- 如果 `NEXT_PUBLIC_BASE_URL` 未配置，推广链接会回退为 `https://iggm.com/?ref=...`
+- 上述 affiliate 链接口径是当前实现现状，尚未和 `NEXT_PUBLIC_APP_URL` / `APP_URL` 完全统一
 
 ---
 
@@ -599,12 +609,18 @@ http://localhost:3000/api/auth/oauth/steam/callback
 
 ### 前台页面
 
+- `/`：首页
 - `/[game]/[category]`：商品列表页
 - `/[game]/product/[id]`：商品详情页
+- `/cart`：购物车页
+- `/checkout`：结账页
+- `/dashboard`：用户中心
+- `/affiliate`：推广页
 - `/search`：搜索页
 - `/news`：文章列表页
 - `/news/[slug]`：文章详情页
 - `/forgot-password`：密码重置页
+- `/auth/callback`：OAuth 登录回调承接页
 - `/admin`：运营后台
 
 ### 目录筛选
@@ -628,11 +644,19 @@ http://localhost:3000/api/auth/oauth/steam/callback
 
 ### 核心 API
 
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `PUT /api/auth/profile`
+- `PUT /api/auth/password`
 - `GET /api/auth/oauth/:provider`
 - `GET /api/auth/oauth/:provider/callback`
 - `POST /api/auth/verification-code`
+- `POST /api/auth/password-reset/request`
+- `POST /api/auth/password-reset/confirm`
 - `POST /api/orders`
 - `GET /api/orders`
+- `GET /api/orders/:id`
 - `PUT /api/orders/:id/status`
 - `POST /api/payments/create`
 - `POST /api/payments/confirm`
@@ -644,6 +668,8 @@ http://localhost:3000/api/auth/oauth/steam/callback
 - `GET /api/articles`
 - `GET /api/articles/:slug`
 - `GET /api/currency-rates`
+- `GET /api/affiliate/stats`
+- `GET /api/affiliate/commissions`
 
 ### 后台 API
 
@@ -835,7 +861,7 @@ tests/
 当前仍然存在这些明确限制：
 
 - 目录筛选已经接入真实数据，但前端交互仍然是轻量版
-- 商品模型已升级到 `SPU / SKU / inventory_lots`，但还没有多仓、预留库存、复杂供应商策略
+- 商品模型已升级到 `SPU / SKU / inventory_lots`，并且已经具备待支付预留库存与支付后 lot 分配；当前缺的是多仓、多供应商分单、跨仓锁库等更复杂策略
 - 邮件系统只做了 SMTP 发送，不含完整模板、队列和投递重试
 - 风控是基础版，不是专业反欺诈系统
 - 内容后台是轻量实现，不是完整 CMS 工作流
@@ -846,7 +872,7 @@ tests/
 
 如果继续往可商用方向推进，优先级建议是：
 
-1. 升级商品/库存模型
+1. 升级商品/库存模型到多仓、多供应商与更复杂锁库/分单策略
 2. 增强后台内容工作流
 3. 增加邮件模板、发送队列与通知中心
 4. 加强反欺诈和支付风控
