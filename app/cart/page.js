@@ -13,6 +13,9 @@ export default function CartPage() {
     const [couponCode, setCouponCode] = useState('');
     const [couponApplied, setCouponApplied] = useState(false);
     const mounted = useHydrated();
+    const primaryItem = items[0] || null;
+    const cartSource = primaryItem?.catalogSource || primaryItem?.catalog_source || 'platform';
+    const sellerName = primaryItem?.sellerSummary?.displayName || primaryItem?.seller_display_name || primaryItem?.seller_username || '';
 
     const subtotal = getSubtotal();
     const discount = couponApplied ? subtotal * 0.08 : 0;
@@ -50,6 +53,12 @@ export default function CartPage() {
                     <div className={styles.cartLayout}>
                         {/* Cart Items */}
                         <div className={styles.cartItems}>
+                            {cartSource === 'marketplace' ? (
+                                <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(249,115,22,0.22)', background: 'rgba(249,115,22,0.08)', color: '#fdba74' }}>
+                                    Marketplace checkout is limited to one seller at a time.
+                                    {sellerName ? ` Current seller: ${sellerName}.` : ''}
+                                </div>
+                            ) : null}
                             <div className={styles.cartHeader}>
                                 <span>Product</span>
                                 <span>Price</span>

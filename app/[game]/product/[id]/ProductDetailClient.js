@@ -11,13 +11,21 @@ export default function ProductDetailClient({ product }) {
     const [quantity, setQuantity] = useState(1);
     const { addItem } = useCartStore();
     const { formatPrice } = useCurrencyStore();
+    const isMarketplace = (product.catalogSource || product.catalog_source) === 'marketplace';
 
     const handleAddToCart = () => {
-        addItem(product, quantity);
+        const result = addItem(product, quantity);
+        if (!result?.ok) {
+            window.alert(result?.error || 'Unable to add this item to the cart.');
+        }
     };
 
     const handleBuyNow = () => {
-        addItem(product, quantity);
+        const result = addItem(product, quantity);
+        if (!result?.ok) {
+            window.alert(result?.error || 'Unable to add this item to the cart.');
+            return;
+        }
         router.push('/cart');
     };
 
@@ -50,6 +58,11 @@ export default function ProductDetailClient({ product }) {
                     Add To Cart
                 </button>
             </div>
+            {isMarketplace ? (
+                <p className={styles.purchaseNote}>
+                    Marketplace orders stay with one seller per checkout and require buyer confirmation before settlement is released.
+                </p>
+            ) : null}
         </div>
     );
 }

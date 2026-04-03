@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { requireStaff } from '@/lib/auth';
-import { assertAllowedTransition, setOrderStatus } from '@/lib/orders';
+import { getUser, requireStaff } from '@/lib/auth';
+import { assertAllowedTransition, isMarketplaceOrder, isStaffRole, ORDER_STATUS, setOrderStatus } from '@/lib/orders';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { cleanMultilineText } from '@/lib/validation';
 import { createStripeRefund } from '@/lib/payments/stripe';
@@ -10,7 +10,10 @@ import { createPayPalRefund } from '@/lib/payments/paypal';
 export async function PUT(request, { params }) {
     try {
         assertTrustedOrigin(request);
-        const staffUser = await requireStaff(request);
+        const actor = await getUser(request);
+        if (!actor) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         const { id } = await params;
         const body = await request.json();
         const nextStatus = body?.status;
@@ -22,16 +25,34 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        assertAllowedTransition(staffUser, order, nextStatus);
+        const isStaffActor = isStaffRole(actor.role);
+        if (isStaffActor) {
+            await requireStaff(request);
+            assertAllowedTransition(actor, order, nextStatus);
+        } else {
+            const buyerCanComplete = actor.id === order.user_id
+                && isMarketplaceOrder(order)
+                && order.status === ORDER_STATUS.DELIVERED
+                && nextStatus === ORDER_STATUS.COMPLETED;
+            const buyerCanDispute = actor.id === order.user_id
+                && isMarketplaceOrder(order)
+                && [ORDER_STATUS.PAID, ORDER_STATUS.DELIVERING, ORDER_STATUS.DELIVERED].includes(order.status)
+                && nextStatus === ORDER_STATUS.DISPUTED
+                && !order.dispute_status;
+
+            if (!buyerCanComplete && !buyerCanDispute) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+            }
+        }
 
         let refundReference = '';
-        if (nextStatus === 'refunded' && order.payment_provider === 'stripe' && order.payment_id) {
+        if (isStaffActor && nextStatus === 'refunded' && order.payment_provider === 'stripe' && order.payment_id) {
             try {
                 const refund = await createStripeRefund(order.payment_id, {
                     metadata: {
                         order_id: String(order.id),
                         order_no: order.order_no,
-                        actor_user_id: String(staffUser.id),
+                        actor_user_id: String(actor.id),
                     },
                     idempotencyKey: `refund-order-${order.id}`,
                 });
@@ -41,7 +62,7 @@ export async function PUT(request, { params }) {
                 return NextResponse.json({ error: 'Stripe refund failed. Order status was not changed.' }, { status: 502 });
             }
         }
-        if (nextStatus === 'refunded' && order.payment_provider === 'paypal' && order.payment_id) {
+        if (isStaffActor && nextStatus === 'refunded' && order.payment_provider === 'paypal' && order.payment_id) {
             try {
                 const refund = await createPayPalRefund(order.payment_id, {
                     note,
@@ -59,8 +80,8 @@ export async function PUT(request, { params }) {
                 orderId: order.id,
                 currentStatus: order.status,
                 nextStatus,
-                actorUserId: staffUser.id,
-                actorRole: staffUser.role,
+                actorUserId: actor.id,
+                actorRole: actor.role,
                 paymentReference: refundReference,
                 message: note || `Status changed to ${nextStatus}`,
             });

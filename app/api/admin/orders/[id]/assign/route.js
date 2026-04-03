@@ -27,6 +27,9 @@ export async function PUT(request, { params }) {
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
+        if (order.order_source === 'marketplace') {
+            return NextResponse.json({ error: 'Marketplace orders are fulfilled by the seller and cannot be assigned' }, { status: 400 });
+        }
         if (![ORDER_STATUS.PAID, ORDER_STATUS.ASSIGNED, ORDER_STATUS.DELIVERING].includes(order.status)) {
             return NextResponse.json({ error: `Order cannot be assigned while in status ${order.status}` }, { status: 400 });
         }

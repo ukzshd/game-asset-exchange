@@ -527,6 +527,13 @@ export default function AdminPage() {
         <div className={styles.adminPage}>
             <div className="container">
                 <h1 className={styles.title}>⚙️ Operations Panel</h1>
+                {user.role === 'admin' ? (
+                    <div style={{ marginBottom: '18px' }}>
+                        <Link href="/admin/marketplace" style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                            Open Marketplace Review Console →
+                        </Link>
+                    </div>
+                ) : null}
 
                 <div className={styles.statsGrid}>
                     <div className={styles.statCard}>

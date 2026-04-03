@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import useAuthStore from '@/store/authStore';
 import useHydrated from '@/lib/useHydrated';
@@ -10,6 +10,7 @@ export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState('orders');
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState('');
     const mounted = useHydrated();
 
     const { user, token, init: initAuth, updateProfile, changePassword } = useAuthStore();
@@ -23,27 +24,27 @@ export default function DashboardPage() {
         initAuth();
     }, [initAuth]);
 
-    useEffect(() => {
+    const loadOrders = useCallback(async () => {
         if (!token) return;
-        const loadOrders = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch('/api/orders', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setOrders(data.orders || []);
-                }
-            } catch (err) {
-                console.error('Failed to fetch orders:', err);
-            } finally {
-                setLoading(false);
+        setLoading(true);
+        try {
+            const res = await fetch('/api/orders', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setOrders(data.orders || []);
             }
-        };
-
-        loadOrders();
+        } catch (err) {
+            console.error('Failed to fetch orders:', err);
+        } finally {
+            setLoading(false);
+        }
     }, [token]);
+
+    useEffect(() => {
+        loadOrders();
+    }, [loadOrders]);
 
     // Init profile form when user loads
     useEffect(() => {
@@ -61,11 +62,46 @@ export default function DashboardPage() {
             delivering: { label: 'Delivering', cls: styles.statusProcessing },
             delivered: { label: 'Delivered', cls: styles.statusDelivered },
             completed: { label: 'Completed', cls: styles.statusCompleted },
+            disputed: { label: 'Disputed', cls: styles.statusProcessing },
             refunded: { label: 'Refunded', cls: styles.statusRefunded },
             cancelled: { label: 'Cancelled', cls: styles.statusRefunded },
         };
         const s = map[status] || map.pending_payment;
         return <span className={`${styles.statusBadge} ${s.cls}`}>{s.label}</span>;
+    };
+
+    const getSourceBadge = (order) => {
+        const source = order.order_source || 'platform';
+        const sellerName = order.seller_display_name || order.seller_username || order.seller_user_id;
+        return (
+            <span className={`${styles.statusBadge} ${source === 'marketplace' ? styles.statusMarketplace : styles.statusDelivered}`}>
+                {source === 'marketplace' ? `Marketplace${sellerName ? ` · ${sellerName}` : ''}` : 'Platform'}
+            </span>
+        );
+    };
+
+    const updateMarketplaceOrder = async (orderId, status) => {
+        if (!token) return;
+        setActionLoading(`${orderId}:${status}`);
+        try {
+            const res = await fetch(`/api/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Order update failed');
+            }
+            await loadOrders();
+        } catch (error) {
+            alert(error.message || 'Order update failed');
+        } finally {
+            setActionLoading('');
+        }
     };
 
     const handleSaveProfile = async () => {
@@ -120,6 +156,10 @@ export default function DashboardPage() {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" /></svg>
                                 Affiliate Program
                             </Link>
+                            <Link href="/seller" className={styles.sideNavItem}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18"><path d="M3 7h18" /><path d="M5 7V5a2 2 0 0 1 2-2h3" /><path d="M19 7v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7" /><path d="M10 12h4" /><path d="M12 10v4" /></svg>
+                                Seller Center
+                            </Link>
                         </nav>
                     </aside>
 
@@ -157,7 +197,9 @@ export default function DashboardPage() {
                                             <span>Date</span>
                                             <span>Items</span>
                                             <span>Amount</span>
+                                            <span>Type</span>
                                             <span>Status</span>
+                                            <span>Actions</span>
                                         </div>
                                         {orders.map((order) => (
                                             <div key={order.id} className={styles.tableRow}>
@@ -165,7 +207,28 @@ export default function DashboardPage() {
                                                 <span className={styles.orderDate}>{order.created_at?.split('T')[0] || order.created_at?.substring(0, 10)}</span>
                                                 <span className={styles.orderItem}>{order.items?.map(i => i.product_name).join(', ') || '-'}</span>
                                                 <span className={styles.orderAmount}>${order.total?.toFixed(2)}</span>
+                                                <span>{getSourceBadge(order)}</span>
                                                 <span>{getStatusBadge(order.status)}</span>
+                                                <span className={styles.actionCell}>
+                                                    {order.order_source === 'marketplace' && order.status === 'delivered' ? (
+                                                        <button
+                                                            className={styles.inlineAction}
+                                                            disabled={actionLoading === `${order.id}:completed`}
+                                                            onClick={() => updateMarketplaceOrder(order.id, 'completed')}
+                                                        >
+                                                            Confirm Receipt
+                                                        </button>
+                                                    ) : null}
+                                                    {order.order_source === 'marketplace' && ['paid', 'delivering', 'delivered'].includes(order.status) && !order.dispute_status ? (
+                                                        <button
+                                                            className={styles.inlineActionMuted}
+                                                            disabled={actionLoading === `${order.id}:disputed`}
+                                                            onClick={() => updateMarketplaceOrder(order.id, 'disputed')}
+                                                        >
+                                                            Open Dispute
+                                                        </button>
+                                                    ) : null}
+                                                </span>
                                             </div>
                                         ))}
                                     </div>

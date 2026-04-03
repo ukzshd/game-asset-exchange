@@ -21,14 +21,24 @@ export default function ProductCard({ product, gameSlug }) {
     };
 
     const handleBuyNow = () => {
-        addItem(product, quantity);
+        const result = addItem(product, quantity);
+        if (!result?.ok) {
+            window.alert(result?.error || 'Unable to add this item to the cart.');
+            return;
+        }
         // In a real app, redirect to checkout
         window.location.href = '/cart';
     };
 
     const handleAddToCart = () => {
-        addItem(product, quantity);
+        const result = addItem(product, quantity);
+        if (!result?.ok) {
+            window.alert(result?.error || 'Unable to add this item to the cart.');
+        }
     };
+
+    const isMarketplace = (product.catalogSource || product.catalog_source) === 'marketplace';
+    const sellerName = product.sellerSummary?.displayName || product.seller_display_name || product.seller_username || '';
 
     return (
         <div className={styles.card}>
@@ -36,6 +46,9 @@ export default function ProductCard({ product, gameSlug }) {
             {product.discount && (
                 <div className={styles.discountBadge}>-{product.discount}%</div>
             )}
+            <div className={`${styles.sourceBadge} ${isMarketplace ? styles.marketplaceBadge : styles.platformBadge}`}>
+                {isMarketplace ? 'Marketplace' : 'Platform'}
+            </div>
 
             {/* Image */}
             {productPath ? (
@@ -71,6 +84,9 @@ export default function ProductCard({ product, gameSlug }) {
             )}
 
             {/* Name */}
+            {isMarketplace && sellerName ? (
+                <div className={styles.sellerRow}>Sold by {sellerName}</div>
+            ) : null}
             {productPath ? (
                 <Link href={productPath} className={styles.nameLink}>
                     <h3 className={styles.name} title={product.name}>

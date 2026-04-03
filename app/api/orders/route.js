@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAuth, generateOrderNo } from '@/lib/auth';
+import { CATALOG_SOURCE, DISPUTE_STATUS, MARKETPLACE_PLATFORM_FEE_RATE, SELLER_STATUS, SETTLEMENT_STATUS } from '@/lib/marketplace';
 import { assertRateLimit } from '@/lib/rate-limit';
 import { assertTrustedOrigin } from '@/lib/request-security';
 import { cleanText, cleanMultilineText, normalizeEmail, isValidEmail, sanitizeOrderItems } from '@/lib/validation';
-import { ORDER_STATUS, createOrderLog } from '@/lib/orders';
+import { ORDER_STATUS, createOrderLog, finalizeMarketplaceOrdersIfDue } from '@/lib/orders';
 import { evaluateRisk, recordRiskEvent } from '@/lib/risk';
 
 function isOrderNoConflict(error) {
@@ -55,11 +56,16 @@ export async function POST(request) {
         const db = await getDb();
         let subtotal = 0;
         const validatedItems = [];
+        const sourceSet = new Set();
+        const sellerSet = new Set();
 
         for (const item of items) {
             const product = await db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId);
             if (!product) {
                 return NextResponse.json({ error: `Product not found: ${item.name || item.productId}` }, { status: 400 });
+            }
+            if (product.catalog_source === CATALOG_SOURCE.MARKETPLACE && product.listing_status !== 'published') {
+                return NextResponse.json({ error: `Marketplace listing is not available: ${product.name}` }, { status: 400 });
             }
             if (!product.in_stock) {
                 return NextResponse.json({ error: `Product out of stock: ${product.name}` }, { status: 400 });
@@ -67,9 +73,26 @@ export async function POST(request) {
             if (Number.isFinite(product.stock_quantity) && product.stock_quantity >= 0 && item.quantity > product.stock_quantity) {
                 return NextResponse.json({ error: `Insufficient stock for ${product.name}` }, { status: 400 });
             }
+            if (product.catalog_source === CATALOG_SOURCE.MARKETPLACE) {
+                const seller = await db.prepare('SELECT status FROM seller_profiles WHERE user_id = ?').get(product.seller_user_id);
+                if (!seller || seller.status !== SELLER_STATUS.APPROVED) {
+                    return NextResponse.json({ error: `Marketplace seller is not available for ${product.name}` }, { status: 400 });
+                }
+            }
 
             subtotal += product.price * item.quantity;
             validatedItems.push({ product, quantity: item.quantity });
+            sourceSet.add(product.catalog_source || CATALOG_SOURCE.PLATFORM);
+            if (product.catalog_source === CATALOG_SOURCE.MARKETPLACE) {
+                sellerSet.add(String(product.seller_user_id || ''));
+            }
+        }
+
+        if (sourceSet.size > 1) {
+            return NextResponse.json({ error: 'Platform and marketplace items must be purchased separately' }, { status: 400 });
+        }
+        if (sellerSet.size > 1) {
+            return NextResponse.json({ error: 'Marketplace orders currently support one seller per checkout' }, { status: 400 });
         }
 
         let discountAmount = 0;
@@ -81,6 +104,12 @@ export async function POST(request) {
         }
 
         const total = subtotal - discountAmount;
+        const orderSource = sourceSet.has(CATALOG_SOURCE.MARKETPLACE) ? CATALOG_SOURCE.MARKETPLACE : CATALOG_SOURCE.PLATFORM;
+        const sellerUserId = orderSource === CATALOG_SOURCE.MARKETPLACE ? Number.parseInt(Array.from(sellerSet)[0] || '0', 10) || null : null;
+        const platformFeeRate = orderSource === CATALOG_SOURCE.MARKETPLACE ? MARKETPLACE_PLATFORM_FEE_RATE : 0;
+        const platformFeeAmount = orderSource === CATALOG_SOURCE.MARKETPLACE ? Number((total * platformFeeRate).toFixed(2)) : 0;
+        const sellerGrossAmount = orderSource === CATALOG_SOURCE.MARKETPLACE ? total : 0;
+        const sellerNetAmount = orderSource === CATALOG_SOURCE.MARKETPLACE ? Number((total - platformFeeAmount).toFixed(2)) : 0;
         const risk = evaluateRisk({
             total,
             itemCount: validatedItems.reduce((sum, item) => sum + item.quantity, 0),
@@ -91,14 +120,17 @@ export async function POST(request) {
         const createOrder = db.transaction(async (orderNo) => {
             const result = await db.prepare(`
                 INSERT INTO orders (
-                    order_no, user_id, total, currency, status, embark_id, character_name,
+                    order_no, user_id, order_source, seller_user_id, total, currency, status, embark_id, character_name,
                     delivery_email, delivery_contact, delivery_platform, delivery_server,
                     payment_method, payment_provider, payment_status,
+                    platform_fee_rate, platform_fee_amount, seller_gross_amount, seller_net_amount, settlement_status, dispute_status,
                     coupon_code, discount_amount, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 orderNo,
                 user.id,
+                orderSource,
+                sellerUserId,
                 total,
                 currency || 'USD',
                 ORDER_STATUS.PENDING_PAYMENT,
@@ -111,6 +143,12 @@ export async function POST(request) {
                 paymentMethod,
                 paymentMethod,
                 'unpaid',
+                platformFeeRate,
+                platformFeeAmount,
+                sellerGrossAmount,
+                sellerNetAmount,
+                orderSource === CATALOG_SOURCE.MARKETPLACE ? SETTLEMENT_STATUS.PENDING : SETTLEMENT_STATUS.NONE,
+                DISPUTE_STATUS.NONE,
                 couponCode,
                 discountAmount,
                 notes
@@ -142,7 +180,7 @@ export async function POST(request) {
                 eventType: 'created',
                 toStatus: ORDER_STATUS.PENDING_PAYMENT,
                 message: 'Order created and awaiting payment',
-                metadata: { paymentMethod, currency },
+                metadata: { paymentMethod, currency, orderSource, sellerUserId, platformFeeAmount, sellerNetAmount },
             });
 
             await recordRiskEvent({
@@ -200,11 +238,16 @@ export async function GET(request) {
         const offset = (page - 1) * limit;
 
         const db = await getDb();
+        await finalizeMarketplaceOrdersIfDue(db);
         const total = (await db.prepare('SELECT COUNT(*)::int as c FROM orders WHERE user_id = ?').get(user.id)).c;
         const orders = await db.prepare(`
-            SELECT o.*, assignee.username AS assigned_username
+            SELECT o.*, assignee.username AS assigned_username,
+                   seller.username AS seller_username,
+                   COALESCE(sp.display_name, seller.username) AS seller_display_name
             FROM orders o
             LEFT JOIN users assignee ON assignee.id = o.assigned_to
+            LEFT JOIN users seller ON seller.id = o.seller_user_id
+            LEFT JOIN seller_profiles sp ON sp.user_id = o.seller_user_id
             WHERE o.user_id = ?
             ORDER BY o.created_at DESC
             LIMIT ? OFFSET ?

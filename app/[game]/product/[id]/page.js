@@ -51,6 +51,8 @@ export default async function ProductDetailPage({ params }) {
     const related = await getRelatedProducts(game, product.id, product.category, 4);
     const breadcrumbCategory = gameData.categories?.[0]?.slug || 'items';
     const offerUrl = `${getAppUrl()}${getProductPath(game, product)}`;
+    const isMarketplace = (product.catalogSource || product.catalog_source) === 'marketplace';
+    const sellerName = product.sellerSummary?.displayName || product.seller_display_name || product.seller_username || '';
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -91,6 +93,9 @@ export default async function ProductDetailPage({ params }) {
                     <div className={styles.visualCard}>
                         <div className={styles.iconWrap}>{getProductIcon(product.category)}</div>
                         <div className={styles.metaList}>
+                            <span className={`${styles.metaPill} ${isMarketplace ? styles.marketplaceSource : styles.platformSource}`}>
+                                {isMarketplace ? 'Marketplace Listing' : 'Platform Listing'}
+                            </span>
                             <span className={styles.metaPill}>{product.category}</span>
                             {product.sub_category ? <span className={styles.metaPill}>{product.sub_category}</span> : null}
                             <span className={`${styles.metaPill} ${product.in_stock ? styles.stockIn : styles.stockOut}`}>
@@ -101,6 +106,12 @@ export default async function ProductDetailPage({ params }) {
 
                     <div className={styles.content}>
                         <h1 className={styles.title}>{product.name}</h1>
+                        {isMarketplace && sellerName ? (
+                            <div className={styles.sellerPanel}>
+                                <strong>Sold by</strong>
+                                <span>{sellerName}</span>
+                            </div>
+                        ) : null}
                         <p className={styles.description}>
                             {product.description || `Manual in-game delivery for ${gameData.name}.`}
                         </p>
@@ -108,15 +119,15 @@ export default async function ProductDetailPage({ params }) {
                         <div className={styles.highlights}>
                             <div className={styles.highlight}>
                                 <strong>Delivery</strong>
-                                <span>Manual in-game handoff after payment confirmation.</span>
+                                <span>{isMarketplace ? 'Seller-managed delivery after payment confirmation.' : 'Manual in-game handoff after payment confirmation.'}</span>
                             </div>
                             <div className={styles.highlight}>
-                                <strong>Game</strong>
-                                <span>{gameData.name}</span>
+                                <strong>{isMarketplace ? 'Settlement' : 'Game'}</strong>
+                                <span>{isMarketplace ? 'Seller payout unlocks after buyer confirmation or 72-hour auto-complete.' : gameData.name}</span>
                             </div>
                             <div className={styles.highlight}>
-                                <strong>Support</strong>
-                                <span>Order moves through paid, assigned, delivering, and completed states.</span>
+                                <strong>{isMarketplace ? 'Protection' : 'Support'}</strong>
+                                <span>{isMarketplace ? 'Buyer can dispute before settlement is released and the platform can step in.' : 'Order moves through paid, assigned, delivering, and completed states.'}</span>
                             </div>
                         </div>
 
@@ -127,9 +138,9 @@ export default async function ProductDetailPage({ params }) {
                 <section className={styles.section}>
                     <h2>Delivery Notes</h2>
                     <ul className={styles.notesList}>
-                        <li>Use a correct game ID in checkout so operations staff can reach you without delay.</li>
-                        <li>Bring only what is necessary into the delivery session.</li>
-                        <li>High-value items should be secured immediately after handoff.</li>
+                        <li>{isMarketplace ? 'Use a correct game ID in checkout so the seller can contact you without delay.' : 'Use a correct game ID in checkout so operations staff can reach you without delay.'}</li>
+                        <li>{isMarketplace ? 'Marketplace orders from different sellers must be placed separately.' : 'Bring only what is necessary into the delivery session.'}</li>
+                        <li>{isMarketplace ? 'Confirm delivery once the handoff is complete, or open a dispute before the auto-complete window ends.' : 'High-value items should be secured immediately after handoff.'}</li>
                     </ul>
                 </section>
 

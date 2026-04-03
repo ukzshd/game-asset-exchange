@@ -28,6 +28,9 @@ export async function PUT(request, { params }) {
             await db.prepare(`
                 UPDATE products
                 SET external_id = ?,
+                    catalog_source = ?,
+                    seller_user_id = ?,
+                    listing_status = ?,
                     game_slug = ?,
                     category = ?,
                     sub_category = ?,

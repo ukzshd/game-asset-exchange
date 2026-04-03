@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { finalizeMarketplaceOrdersIfDue } from '@/lib/orders';
 
 export async function GET(request, { params }) {
     try {
         const user = await requireAuth(request);
         const { id } = await params;
         const db = await getDb();
+        await finalizeMarketplaceOrdersIfDue(db);
 
         const order = await db.prepare(`
-            SELECT o.*, assignee.username AS assigned_username
+            SELECT o.*, assignee.username AS assigned_username,
+                   seller.username AS seller_username,
+                   COALESCE(sp.display_name, seller.username) AS seller_display_name
             FROM orders o
             LEFT JOIN users assignee ON assignee.id = o.assigned_to
+            LEFT JOIN users seller ON seller.id = o.seller_user_id
+            LEFT JOIN seller_profiles sp ON sp.user_id = o.seller_user_id
             WHERE o.id = ? AND o.user_id = ?
         `).get(id, user.id);
         if (!order) {

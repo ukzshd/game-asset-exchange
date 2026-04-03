@@ -61,10 +61,10 @@ export async function POST(request) {
         const tx = db.transaction(async () => {
             const result = await db.prepare(`
                 INSERT INTO products (
-                    external_id, game_slug, category, sub_category, name, description,
+                    external_id, catalog_source, seller_user_id, listing_status, game_slug, category, sub_category, name, description,
                     platform, server_region, rarity, delivery_note, package_label, package_size, package_unit,
                     price, original_price, discount, in_stock, stock_quantity, image
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(...getProductWriteValues(input));
 
             await syncNormalizedProductModel(db, result.lastInsertRowid, input);

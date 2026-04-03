@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { requireStaff } from '@/lib/auth';
-import { getAllowedTransitions } from '@/lib/orders';
+import { finalizeMarketplaceOrdersIfDue, getAllowedTransitions } from '@/lib/orders';
 
 export async function GET(request) {
     try {
@@ -13,6 +13,7 @@ export async function GET(request) {
         const offset = (page - 1) * limit;
 
         const db = await getDb();
+        await finalizeMarketplaceOrdersIfDue(db);
 
         const whereParts = [];
         const params = [];
@@ -31,10 +32,14 @@ export async function GET(request) {
         const orders = await db.prepare(`
             SELECT
                 o.*, u.email as user_email, u.username,
+                seller.username as seller_username,
+                COALESCE(sp.display_name, seller.username) AS seller_display_name,
                 assignee.username as assigned_username,
                 assigner.username as assigned_by_username
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
+            LEFT JOIN users seller ON seller.id = o.seller_user_id
+            LEFT JOIN seller_profiles sp ON sp.user_id = o.seller_user_id
             LEFT JOIN users assignee ON assignee.id = o.assigned_to
             LEFT JOIN users assigner ON assigner.id = o.assigned_by
             ${where}

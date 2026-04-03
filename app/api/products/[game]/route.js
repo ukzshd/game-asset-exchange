@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getCatalogVisibilityWhereClause, withMarketplacePresentation } from '@/lib/marketplace';
 import { cleanText, toInteger } from '@/lib/validation';
 
 export async function GET(request, { params }) {
@@ -24,7 +25,7 @@ export async function GET(request, { params }) {
 
         const db = await getDb();
 
-        let where = 'WHERE p.game_slug = ?';
+        let where = `WHERE p.game_slug = ? AND ${getCatalogVisibilityWhereClause('p')}`;
         const queryParams = [game];
 
         if (category) {
@@ -94,8 +95,10 @@ export async function GET(request, { params }) {
 
         const countRow = await db.prepare(`SELECT COUNT(*)::int as total FROM products p ${where}`).get(...queryParams);
         const products = await db.prepare(`
-            SELECT p.*
+            SELECT p.*, seller.username AS seller_username, COALESCE(sp.display_name, seller.username) AS seller_display_name, sp.status AS seller_status
             FROM products p
+            LEFT JOIN users seller ON seller.id = p.seller_user_id
+            LEFT JOIN seller_profiles sp ON sp.user_id = p.seller_user_id
             ${where}
             ${orderBy}
             LIMIT ? OFFSET ?
@@ -107,7 +110,7 @@ export async function GET(request, { params }) {
         const rarities = (await db.prepare("SELECT DISTINCT rarity FROM products WHERE game_slug = ? AND rarity != '' ORDER BY rarity").all(game)).map((row) => row.rarity);
 
         return NextResponse.json({
-            products,
+            products: (products || []).map(withMarketplacePresentation),
             total: countRow.total,
             page,
             limit,

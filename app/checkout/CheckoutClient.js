@@ -29,6 +29,9 @@ export default function CheckoutPage() {
     });
     const [paymentMethod, setPaymentMethod] = useState('stripe');
     const [agreeTerms, setAgreeTerms] = useState(false);
+    const primaryItem = items[0] || null;
+    const cartSource = primaryItem?.catalogSource || primaryItem?.catalog_source || 'platform';
+    const sellerName = primaryItem?.sellerSummary?.displayName || primaryItem?.seller_display_name || primaryItem?.seller_username || '';
 
     useEffect(() => {
         initAuth();
@@ -173,8 +176,8 @@ export default function CheckoutPage() {
                         <div className={styles.completeIcon}>✅</div>
                         <h2>Order Placed Successfully</h2>
                         {orderNo && <p className={styles.completeNote}>Order No: {orderNo}</p>}
-                        <p>Your payment has been confirmed. Our operations team will assign the delivery and contact you with the in-game handoff details.</p>
-                        <p className={styles.completeNote}>Please keep your game account available and monitor your email for delivery updates.</p>
+                        <p>{cartSource === 'marketplace' ? 'Your payment has been confirmed. The seller can now begin delivery and you will be able to confirm receipt from your dashboard.' : 'Your payment has been confirmed. Our operations team will assign the delivery and contact you with the in-game handoff details.'}</p>
+                        <p className={styles.completeNote}>{cartSource === 'marketplace' ? 'Please monitor your email and dashboard. Seller settlement is only released after you confirm receipt or the 72-hour auto-complete window expires.' : 'Please keep your game account available and monitor your email for delivery updates.'}</p>
                         <div className={styles.completeActions}>
                             <Link href="/dashboard" className="btn btn-primary">View My Orders</Link>
                             <Link href="/" className="btn btn-secondary">Continue Shopping</Link>
@@ -186,6 +189,11 @@ export default function CheckoutPage() {
                             {step === 1 && (
                                 <div className={styles.formCard}>
                                     <h2 className={styles.formTitle}>Delivery Information</h2>
+                                    {cartSource === 'marketplace' ? (
+                                        <div style={{ marginBottom: '18px', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(249,115,22,0.22)', background: 'rgba(249,115,22,0.08)', color: '#fdba74' }}>
+                                            This is a marketplace order{sellerName ? ` from ${sellerName}` : ''}. Buyer confirmation or the auto-complete timer will release seller settlement.
+                                        </div>
+                                    ) : null}
                                     <div className={styles.formGrid}>
                                         <div className={styles.field}>
                                             <label>Embark ID *</label>
@@ -281,6 +289,11 @@ export default function CheckoutPage() {
 
                         <div className={styles.orderSummary}>
                             <h3>Order Summary</h3>
+                            {cartSource === 'marketplace' ? (
+                                <div style={{ marginBottom: '14px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(249,115,22,0.08)', color: '#fdba74', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                                    Marketplace checkout supports one seller per order.{sellerName ? ` Seller: ${sellerName}.` : ''}
+                                </div>
+                            ) : null}
                             <div className={styles.summaryItems}>
                                 {items.map((item) => (
                                     <div key={item.id} className={styles.summaryItem}>

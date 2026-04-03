@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import games from '@/data/games.json';
+import { getCatalogVisibilityWhereClause } from '@/lib/marketplace';
 import { cleanText, toInteger } from '@/lib/validation';
 
 export async function GET(request) {
@@ -16,9 +17,12 @@ export async function GET(request) {
         const db = await getDb();
         const like = `%${query}%`;
         const products = await db.prepare(`
-            SELECT id, external_id, game_slug, category, sub_category, name, description, price, in_stock
-            FROM products
-            WHERE name LIKE ? OR description LIKE ?
+            SELECT p.id, p.external_id, p.game_slug, p.category, p.sub_category, p.name, p.description, p.price, p.in_stock,
+                   p.catalog_source, p.seller_user_id, COALESCE(sp.display_name, seller.username) AS seller_display_name
+            FROM products p
+            LEFT JOIN users seller ON seller.id = p.seller_user_id
+            LEFT JOIN seller_profiles sp ON sp.user_id = p.seller_user_id
+            WHERE ${getCatalogVisibilityWhereClause('p')} AND (p.name LIKE ? OR p.description LIKE ?)
             ORDER BY in_stock DESC, price ASC, name ASC
             LIMIT ?
         `).all(like, like, limit);

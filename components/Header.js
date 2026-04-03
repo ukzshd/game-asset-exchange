@@ -343,6 +343,18 @@ export default function Header() {
                                 </svg>
                                 Dashboard
                             </Link>
+                            {mounted && user ? (
+                                <Link href="/seller" className={styles.navLink}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                                        <path d="M3 7h18" />
+                                        <path d="M5 7V5a2 2 0 0 1 2-2h3" />
+                                        <path d="M19 7v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7" />
+                                        <path d="M10 12h4" />
+                                        <path d="M12 10v4" />
+                                    </svg>
+                                    Seller Center
+                                </Link>
+                            ) : null}
                         </div>
                     </div>
                 </nav>

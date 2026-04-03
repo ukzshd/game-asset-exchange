@@ -78,6 +78,14 @@
     color: #f87171;
 }
 
+.platformSource {
+    color: var(--accent-blue);
+}
+
+.marketplaceSource {
+    color: #fb923c;
+}
+
 .content {
     display: flex;
     flex-direction: column;
@@ -95,6 +103,22 @@
     color: var(--text-secondary);
     line-height: 1.7;
     margin: 0;
+}
+
+.sellerPanel {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    padding: 10px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    background: rgba(249, 115, 22, 0.08);
+    color: #fdba74;
+}
+
+.sellerPanel strong {
+    color: #fb923c;
 }
 
 .highlights {
@@ -203,6 +227,13 @@
 .secondaryAction:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.purchaseNote {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.6;
 }
 
 .section {
